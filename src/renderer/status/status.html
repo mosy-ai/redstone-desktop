@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;"
+    />
+    <title>Redstone folders</title>
+    <link rel="stylesheet" href="status.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Linked folders</h1>
+      <button id="add" class="primary">Link a folder…</button>
+    </header>
+    <main id="list" aria-live="polite"></main>
+    <footer>
+      <span id="shellVersion"></span>
+      <button id="syncAll" class="ghost">Sync now</button>
+    </footer>
+    <script src="status.js"></script>
+  </body>
+</html>

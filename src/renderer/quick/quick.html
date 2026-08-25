@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+    />
+    <title>Quick bar unavailable</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0; height: 100vh; display: grid; place-items: center;
+        background: rgba(22, 24, 31, 0.94); color: #f3eee3; border-radius: 16px;
+        border: 1px solid rgba(243, 238, 227, 0.1);
+        font: 13.5px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+        -webkit-user-select: none; user-select: none; -webkit-app-region: drag;
+        text-align: center; padding: 0 26px;
+      }
+      strong { display: block; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+      span { color: #a79c8c; }
+    </style>
+  </head>
+  <body>
+    <!--
+      Shown when the connected Redstone has no /quick route. Redstone is
+      self-hostable, so an older server is a normal thing to meet — this says so
+      plainly rather than the shell growing a second chat UI to cover for it.
+    -->
+    <div>
+      <strong>The quick bar needs a newer Redstone</strong>
+      <span>This server doesn’t serve <code>/quick</code> yet. Everything else works as usual.</span>
+    </div>
+  </body>
+</html>

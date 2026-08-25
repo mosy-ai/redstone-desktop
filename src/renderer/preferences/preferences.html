@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;"
+    />
+    <title>Redstone Settings</title>
+    <link rel="stylesheet" href="preferences.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Redstone on this Mac</h1>
+      <p id="lede">
+        Shortcuts work everywhere, even when Redstone is behind another app. Click one and press
+        the keys you want.
+      </p>
+    </header>
+
+    <main>
+      <section>
+        <h2>Shortcuts</h2>
+        <ul class="shortcuts">
+          <li>
+            <div class="what">
+              <strong>Floating chat bar</strong>
+              <span>Ask without leaving what you're doing</span>
+            </div>
+            <button class="key" id="quickBar" type="button" data-name="quickBar"></button>
+          </li>
+          <li>
+            <div class="what">
+              <strong>Bring Redstone to the front</strong>
+              <span>Opens on the screen your cursor is on</span>
+            </div>
+            <button class="key" id="summon" type="button" data-name="summon"></button>
+          </li>
+          <li>
+            <div class="what">
+              <strong>Capture the screen</strong>
+              <span>Shows you the image before it is sent</span>
+            </div>
+            <button class="key" id="capture" type="button" data-name="capture"></button>
+          </li>
+        </ul>
+        <p class="status" id="status"></p>
+      </section>
+
+      <section>
+        <h2>Voice</h2>
+        <div class="server" id="micRow">
+          <div class="what">
+            <strong id="micState">Checking the microphone…</strong>
+            <span id="micHint">Redstone records only while you hold voice input.</span>
+          </div>
+          <button class="ghost" id="micAllow" type="button" hidden>Allow…</button>
+        </div>
+        <label class="picker" id="micPickerRow" hidden>
+          <span>Preferred microphone</span>
+          <select id="micPicker"></select>
+        </label>
+        <p class="status" id="micNote"></p>
+      </section>
+
+      <section>
+        <h2>This app</h2>
+        <label class="toggle">
+          <input type="checkbox" id="launchAtLogin" />
+          <span>Open Redstone when I log in</span>
+        </label>
+        <div class="server">
+          <div class="what">
+            <strong id="serverOrigin">—</strong>
+            <span>The Redstone this app is connected to</span>
+          </div>
+          <button class="ghost" id="switchServer" type="button">Switch…</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span id="version"></span>
+      <button class="ghost" id="accountSettings" type="button">Account settings…</button>
+    </footer>
+    <script src="preferences.js"></script>
+  </body>
+</html>

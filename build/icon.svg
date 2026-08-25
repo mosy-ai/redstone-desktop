@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Redstone</title>
+  <desc>
+    The Redstone wordmark reduced to its mark: "r." set in Fraunces SemiBold —
+    the web app's display face — bone on warm obsidian, with the full stop in
+    clay. The glyph outlines below are the real Fraunces contours (unitsPerEm
+    2000, 'r' advance 957), not a redrawing, so the icon and the wordmark in the
+    web app are the same letterforms.
+
+    Palette is frontend-v2/src/app/globals.css:
+      obsidian #15110D · bone #F3EEE3 · clay #E54D2E · clay-soft #F06E50
+  </desc>
+
+  <defs>
+    <!-- Warm obsidian plate, lit slightly from above. -->
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#241C15"/>
+      <stop offset="0.52" stop-color="#17120E"/>
+      <stop offset="1" stop-color="#100C09"/>
+    </linearGradient>
+
+    <!-- Clay glow in the lower right, the same ember the hero uses. -->
+    <radialGradient id="ember" cx="0.74" cy="0.8" r="0.7">
+      <stop offset="0" stop-color="#E54D2E" stop-opacity="0.34"/>
+      <stop offset="0.55" stop-color="#E54D2E" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#E54D2E" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- A cooler counter-light top left keeps the plate from going flat. -->
+    <radialGradient id="lift" cx="0.24" cy="0.16" r="0.6">
+      <stop offset="0" stop-color="#F3EEE3" stop-opacity="0.09"/>
+      <stop offset="1" stop-color="#F3EEE3" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Hairline rim: bright along the top edge, faint at the bottom. -->
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3EEE3" stop-opacity="0.22"/>
+      <stop offset="0.45" stop-color="#F3EEE3" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#F3EEE3" stop-opacity="0.10"/>
+    </linearGradient>
+
+    <!-- Subtle vertical shading across the letterform itself. -->
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFCF6"/>
+      <stop offset="1" stop-color="#E9E2D3"/>
+    </linearGradient>
+
+    <linearGradient id="stop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FF6B4E"/>
+      <stop offset="1" stop-color="#E54D2E"/>
+    </linearGradient>
+
+    <!-- 824×824 content area inside a 1024 canvas is the macOS icon grid; the
+         22.4% corner radius is the standard squircle approximation. -->
+    <clipPath id="plateClip">
+      <rect x="100" y="100" width="824" height="824" rx="184.5" ry="184.5"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#plateClip)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#plate)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#ember)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#lift)"/>
+  </g>
+
+  <!--
+    The mark. Glyph space is y-up, so the group flips it: a point (x, y) lands at
+    (172.5 + 0.46x, 730 − 0.46y). That puts the lockup's bounding box dead centre
+    on the plate — 613px wide, 456px tall.
+  -->
+  <g transform="translate(172.5 730) scale(0.46 -0.46)">
+    <path fill="url(#ink)" d="M436 530Q436 675 477 773Q518 871 585 920.5Q652 970 729 970Q824 970 876 916Q928 862 928 761Q928 671 891 627Q854 583 795 583Q735 583 704 615Q673 647 673 704L673 740Q672 772 658 787.5Q644 803 612 803Q577 803 544.5 774Q512 745 491.5 686Q471 627 471 535L436 530ZM455 901L471 674L471 161Q471 132 482.5 118.5Q494 105 524 100L610 87Q633 83 644.5 72Q656 61 656 42Q656 22 641.5 11Q627 0 600 0L133 0Q105 0 92 11Q79 22 79 41Q79 56 88 66.5Q97 77 116 84L155 94Q173 100 181.5 114.5Q190 129 190 160L190 731Q190 757 182.5 768Q175 779 158 782L105 786Q87 790 79 799Q71 808 71 822Q71 839 81 849Q91 859 117 869L299 935Q348 954 371 959.5Q394 965 407 965Q429 965 440 950.5Q451 936 455 901Z"/>
+    <path fill="url(#stop)" transform="translate(957 0)" d="M270 -22Q221 -22 180.5 3Q140 28 116.5 69.5Q93 111 93 159Q93 209 116.5 250Q140 291 180.5 315.5Q221 340 270 340Q321 340 361 315.5Q401 291 424.5 250Q448 209 448 159Q448 111 424.5 69.5Q401 28 361 3Q321 -22 270 -22Z"/>
+  </g>
+
+  <rect x="101" y="101" width="822" height="822" rx="184" ry="184"
+        fill="none" stroke="url(#rim)" stroke-width="2"/>
+</svg>

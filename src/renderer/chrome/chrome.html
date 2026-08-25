@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;"
+    />
+    <title>Redstone</title>
+    <link rel="stylesheet" href="chrome.css" />
+  </head>
+  <body>
+    <!--
+      Window chrome, and nothing else.
+
+      Every *action* belongs in the web app's own UI, next to the thing it acts
+      on — see docs/integration/04-desktop-affordances-in-web-ui.md. Sync status
+      belongs where it can show more than one folder: the Folder Sync Status
+      window, the tray, and the web app's own per-chat control. A summary line
+      up here could only ever describe one link, or blur several into a number
+      nobody can act on.
+
+      What is left is a drag region — a frameless window is movable only where
+      the page says so, and the web app does not know it is inside one — and
+      reload, for when the page is wedged and the menu is out of reach.
+    -->
+    <div class="bar">
+      <svg class="mark" viewBox="0 0 1334 992" aria-label="Redstone" role="img">
+        <g transform="translate(-71 970) scale(1 -1)">
+          <path
+            fill="var(--ink)"
+            d="M436 530Q436 675 477 773Q518 871 585 920.5Q652 970 729 970Q824 970 876 916Q928 862 928 761Q928 671 891 627Q854 583 795 583Q735 583 704 615Q673 647 673 704L673 740Q672 772 658 787.5Q644 803 612 803Q577 803 544.5 774Q512 745 491.5 686Q471 627 471 535L436 530ZM455 901L471 674L471 161Q471 132 482.5 118.5Q494 105 524 100L610 87Q633 83 644.5 72Q656 61 656 42Q656 22 641.5 11Q627 0 600 0L133 0Q105 0 92 11Q79 22 79 41Q79 56 88 66.5Q97 77 116 84L155 94Q173 100 181.5 114.5Q190 129 190 160L190 731Q190 757 182.5 768Q175 779 158 782L105 786Q87 790 79 799Q71 808 71 822Q71 839 81 849Q91 859 117 869L299 935Q348 954 371 959.5Q394 965 407 965Q429 965 440 950.5Q451 936 455 901Z"
+          />
+          <path
+            fill="var(--clay)"
+            transform="translate(957 0)"
+            d="M270 -22Q221 -22 180.5 3Q140 28 116.5 69.5Q93 111 93 159Q93 209 116.5 250Q140 291 180.5 315.5Q221 340 270 340Q321 340 361 315.5Q401 291 424.5 250Q448 209 448 159Q448 111 424.5 69.5Q401 28 361 3Q321 -22 270 -22Z"
+          />
+        </g>
+      </svg>
+
+      <div class="spacer"></div>
+
+      <button class="action icon-only" id="reload" type="button" title="Reload Redstone (⌘R)">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path
+            d="M19 12a7 7 0 1 1-2.05-4.95M19 4.5V9h-4.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </div>
+    <script src="chrome.js"></script>
+  </body>
+</html>

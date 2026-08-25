@@ -1,0 +1,47 @@
+{
+  "name": "redstone-desktop",
+  "productName": "Redstone",
+  "version": "0.2.0",
+  "description": "Redstone desktop shell — folder workspaces, local file attach, quick chat bar and screen capture for the Redstone web app.",
+  "private": true,
+  "license": "UNLICENSED",
+  "author": {
+    "name": "YITEC",
+    "email": "dev@yitec.dev"
+  },
+  "main": "dist/main/index.js",
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "icons": "node scripts/make-icons.mjs",
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/test.mjs",
+    "dev": "npm run build && electron . --dev",
+    "smoke": "npm run build && node scripts/smoke.mjs",
+    "smoke:ui": "npm run build && node scripts/smoke.mjs --ui",
+    "start": "npm run build && electron .",
+    "pack": "npm run build && electron-builder --dir",
+    "pack:all": "npm run build && electron-builder --dir --mac --win --linux",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "verify": "npm run typecheck && npm run test && npm run build && npm run smoke && npm run smoke:ui"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.4",
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "chokidar": "^5.0.0",
+    "electron": "^43.3.0",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
+    "ignore": "^7.0.6",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

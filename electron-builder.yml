@@ -1,0 +1,126 @@
+appId: dev.yitec.redstone.desktop
+productName: Redstone
+copyright: © YITEC
+
+directories:
+  output: release
+  buildResources: build
+
+# Signs the bundle before it is packaged — see build/after-pack.cjs for why the
+# order matters.
+afterPack: build/after-pack.cjs
+
+# The shell has no native modules on purpose (see docs/DESIGN.md), so the same
+# `dist/` output packages for every platform from any host.
+files:
+  - dist/**/*
+  - package.json
+  - '!**/*.map'
+
+asar: true
+compression: normal
+electronLanguages:
+  - en-US
+  - vi
+
+extraMetadata:
+  main: dist/main/index.js
+
+# --- macOS -------------------------------------------------------------------
+mac:
+  category: public.app-category.productivity
+  minimumSystemVersion: '13.0'
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Screen capture and the file dialogs are user-triggered; macOS still wants the
+  # purpose strings present in Info.plist or it kills the process on first use.
+  extendInfo:
+    NSScreenCaptureUsageDescription: >-
+      Redstone captures your screen only when you press the capture shortcut, so
+      you can show the assistant what you are looking at.
+    NSMicrophoneUsageDescription: >-
+      Redstone uses the microphone when you talk to it instead of typing. Nothing
+      is recorded unless you start voice input yourself.
+    NSDesktopFolderUsageDescription: >-
+      Redstone reads the folder you pick so it can sync it with your workspace.
+    NSDocumentsFolderUsageDescription: >-
+      Redstone reads the folder you pick so it can sync it with your workspace.
+    NSDownloadsFolderUsageDescription: >-
+      Redstone reads files you attach to a conversation.
+    LSMinimumSystemVersion: '13.0'
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  contents:
+    - x: 140
+      y: 200
+    - x: 400
+      y: 200
+      type: link
+      path: /Applications
+
+# --- Windows -----------------------------------------------------------------
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+  artifactName: ${productName}-Setup-${version}-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Redstone
+  deleteAppDataOnUninstall: false
+
+# --- Linux (best effort, per spec §3) ----------------------------------------
+linux:
+  category: Utility
+  # Without this the binary takes its name from package.json ("redstone-desktop")
+  # and the window manager groups it under a name nobody recognises.
+  executableName: redstone
+  synopsis: Redstone desktop shell
+  description: >-
+    Redstone on your machine: link a local folder to a Redstone workspace, drop
+    files into a conversation, and summon a quick chat bar from anywhere.
+  desktop:
+    entry:
+      StartupWMClass: redstone
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
+
+appImage:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libsecret-1-0
+
+# --- Updates -----------------------------------------------------------------
+# Releases live on GitHub, so electron-updater reads the release assets directly
+# and `latest-mac.yml` is generated pointing at them. A private repo would need a
+# token in the client; this one is public.
+publish:
+  - provider: github
+    owner: mosy-ai
+    repo: redstone-desktop
+    releaseType: release

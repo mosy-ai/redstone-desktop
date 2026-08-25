@@ -1,0 +1,50 @@
+# Changelog
+
+## 0.2.0 — 15 Aug 2026
+
+First release anyone else can install. 0.1.0 was never published.
+
+### Added
+- **Server picker before login.** Redstone is self-hostable and regional, so the
+  first screen asks for the instance and verifies it with `GET /api/v1/health`.
+  Remembers the servers you have used; `File → Switch Server…` changes it.
+- **Folder sync**, both directions: local edits reach the server in ~3.5s, the
+  agent's writes reach your disk in ~2s while a turn is streaming. Conflicts keep
+  both copies, renames move rather than re-upload, deletions propagate, and a
+  truncated listing never deletes anything.
+- **Per-conversation folder links.** A folder belongs to a chat, not to the app.
+- **Quick chat bar** on a global shortcut, running the web app's `/quick` route.
+- **Screen capture** on a global shortcut, with a preview you confirm before
+  anything is uploaded. Held for the quick bar until it has a conversation.
+- **Bring Redstone to the front** (`⌘⌥R`), on the display your cursor is on.
+- **Desktop settings** (`⌘,`): all three shortcuts with a recorder, launch at
+  login, microphone permission and device preference, current server.
+- **Drag and drop** files onto the window to attach them.
+- **Voice input**: microphone allowed for audio, for Redstone's origins, once
+  macOS has granted it too.
+- Bridge additions for the web app: `focusWindow`, `setBadgeCount`,
+  `sessionFolder`, `linkSessionFolder`, `unlinkSessionFolder`,
+  `preferredMicrophone`, `resizeQuickBar`.
+
+### Fixed
+- WebSockets to Redstone's own origins were blocked, leaving the web app
+  reconnecting silently.
+- The window could not be dragged: a hidden title bar with no drag region.
+- Notifications: the renderer was destroyed on close and throttled while hidden,
+  so the event stream stopped. The window now hides, un-throttled.
+- The login was lost on every quit — cookies were not flushed before exit.
+- Native dialogs opened behind the window (the web app is a view, not a window),
+  making the folder picker look like it did nothing.
+- A global shortcut added after install came back `undefined`, because saved
+  settings replaced nested defaults wholesale.
+- Quitting mid-launch crashed with "globalShortcut cannot be used before the app
+  is ready".
+- Folders showed their raw id instead of a name.
+- "Paused" no longer implies you paused it: a server-side stop says so, and
+  offers no button that cannot help.
+
+### Known gaps
+- Windows and Linux builds are not published yet; they package cleanly and CI
+  builds them, but nobody has run them in anger.
+- Not notarized. macOS will warn unless you remove the quarantine attribute.
+- Uploads are not resumable, matching the server API.

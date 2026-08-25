@@ -1,0 +1,15 @@
+node_modules/
+dist/
+dist-test/
+release/
+*.log
+.DS_Store
+.env
+.env.local
+
+# Generated from the checked-in SVGs by `npm run icons`.
+build/icon.png
+src/renderer/tray/tray.png
+
+# Dated notes to the web team: internal correspondence, not product docs.
+docs/integration/followups/

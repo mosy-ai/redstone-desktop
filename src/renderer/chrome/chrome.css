@@ -1,0 +1,138 @@
+/* Desktop chrome bar. Brand palette from the web app's globals.css so the strip
+   above the page does not look bolted on. */
+:root {
+  color-scheme: dark;
+  --obsidian: #15110d;
+  --obsidian-2: #1e1813;
+  --ink: #f3eee3;
+  --ink-soft: #a79c8c;
+  --clay: #e54d2e;
+  --clay-soft: #f06e50;
+  --line: rgba(243, 238, 227, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 44px;
+  overflow: hidden;
+  background: var(--obsidian);
+  color: var(--ink);
+  font:
+    13px/1.4 system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.bar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--obsidian-2), var(--obsidian));
+  /* Everything is draggable unless a control opts out. */
+  -webkit-app-region: drag;
+}
+
+/* Room for the macOS traffic lights, which sit inside this bar. */
+body[data-platform='darwin'] .bar {
+  padding-left: 84px;
+}
+
+/* `display: flex` beats the UA rule for [hidden], so say it explicitly — without
+   this the control stays on screen outside a conversation. */
+.context[hidden] {
+  display: none;
+}
+
+.context {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.mark {
+  width: 26px;
+  height: auto;
+  flex: 0 0 auto;
+  opacity: 0.95;
+}
+
+/* The conversation's folder: an invitation when there is none, a status when
+   there is. One control, because it is one idea. */
+.action {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.action:hover:not(:disabled) {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(243, 238, 227, 0.22);
+}
+
+.action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.action.icon-only {
+  padding: 0;
+  width: 30px;
+  justify-content: center;
+}
+
+
+/* A brief message under the bar — the only place the shell talks back, since it
+   owns no other pixels. */
+.toast {
+  position: fixed;
+  top: 48px;
+  right: 12px;
+  max-width: 380px;
+  padding: 9px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgba(30, 24, 19, 0.97);
+  color: var(--ink);
+  font-size: 12.5px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+  -webkit-app-region: no-drag;
+}
+
+.toast[data-tone='error'] {
+  border-color: color-mix(in srgb, var(--clay) 55%, transparent);
+  color: var(--clay-soft);
+}
