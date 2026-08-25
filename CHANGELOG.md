@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.1 — 25 Aug 2026
+
+Signed and notarized by Apple. 0.2.0 was ad-hoc signed, so macOS refused to open
+it without a right-click override, and every launch showed the unidentified
+developer warning.
+
+### Changed
+- **macOS builds are signed with a Developer ID and notarized**, app and disk
+  image both. Gatekeeper now accepts the download with no warning and no
+  right-click dance: `spctl` reports `source=Notarized Developer ID`.
+- Signing happens *before* the app is put into the dmg and zip. Previously the
+  signature was applied to the built bundle afterwards, which left the shipped
+  archives containing an unsigned copy — no microphone permission for anyone but
+  the person who ran the build.
+- Ad-hoc signing (used when no certificate is configured) now passes the
+  entitlements file, so unsigned local builds keep microphone access too.
+
+### Fixed
+- Windows and Linux installers are built in CI again. An unset signing secret
+  arrives as an empty variable and electron-builder read it as a certificate
+  path; the Linux icon renderer aborted on Electron's unconfigured sandbox.
+
 ## 0.2.0 — 15 Aug 2026
 
 First release anyone else can install. 0.1.0 was never published.
