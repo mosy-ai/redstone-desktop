@@ -28,7 +28,14 @@ const electron = require('electron');
 
 // Piped, not inherited: Chromium's helpers can outlive the main process for a
 // moment and would hold our stdout open long after the render finished.
-const child = spawn(electron, [path.join(root, 'scripts/render-icons.cjs')], {
+// CI Linux runners ship Electron's chrome-sandbox without the setuid bit, which
+// makes Chromium abort on start. This process only rasterises an SVG at build
+// time and never loads remote content, so dropping the sandbox here is safe and
+// does not affect the packaged app.
+const rendererArgs = [path.join(root, 'scripts/render-icons.cjs')];
+if (process.platform === 'linux') rendererArgs.push('--no-sandbox');
+
+const child = spawn(electron, rendererArgs, {
   cwd: root,
   stdio: ['ignore', 'pipe', 'pipe'],
   env: { ...process.env, ELECTRON_DISABLE_SECURITY_WARNINGS: '1' },

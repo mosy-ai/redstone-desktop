@@ -1,7 +1,7 @@
 {
   "name": "redstone-desktop",
   "productName": "Redstone",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Redstone desktop shell — folder workspaces, local file attach, quick chat bar and screen capture for the Redstone web app.",
   "private": true,
   "license": "UNLICENSED",
