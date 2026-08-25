@@ -9,6 +9,8 @@ directories:
 # Signs the bundle before it is packaged — see build/after-pack.cjs for why the
 # order matters.
 afterPack: build/after-pack.cjs
+# Notarization, when REDSTONE_NOTARY_PROFILE names stored credentials.
+afterSign: build/after-sign.cjs
 
 # The shell has no native modules on purpose (see docs/DESIGN.md), so the same
 # `dist/` output packages for every platform from any host.

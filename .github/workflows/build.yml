@@ -51,17 +51,28 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run icons
+
+      # The icon renderer draws through Electron, so the Linux runner needs a
+      # display for it as much as for the smoke test.
+      - name: Install Linux deps
+        if: matrix.name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnotify4 libsecret-1-0
+      - name: Icons (linux)
+        if: matrix.name == 'linux'
+        run: xvfb-run --auto-servernum npm run icons
+      - name: Icons
+        if: matrix.name != 'linux'
+        run: npm run icons
+
       - run: npm run build
 
       # Proves the bundle actually boots on this platform, not just that it
       # compiled. Linux runners have no display server.
       - name: Smoke test (linux)
         if: matrix.name == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libnotify4 libsecret-1-0
-          xvfb-run --auto-servernum npm run smoke
+        run: xvfb-run --auto-servernum npm run smoke
       - name: Smoke test
         if: matrix.name != 'linux'
         run: npm run smoke
@@ -77,7 +88,6 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          REDSTONE_UPDATE_URL: ${{ vars.REDSTONE_UPDATE_URL || 'https://example.invalid/updates' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder ${{ matrix.args }} --publish never
 
