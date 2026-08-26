@@ -46,6 +46,12 @@ import { showStatusWindow } from './windows/status-window';
 import { showPreferencesWindow } from './windows/preferences-window';
 import { buildMenu } from './menu';
 import {
+  checkConnection,
+  getConnection,
+  reportRendererNetwork,
+  type ConnectionReport,
+} from './connection';
+import {
   getQuickWindow,
   hideQuickWindow,
   resizeQuickWindow,
@@ -76,6 +82,14 @@ const isQuickBar = (event: { sender: Electron.WebContents }): boolean => {
 };
 
 /** Broadcast a sync status to every window that might be rendering it. */
+/** Broadcast a connection report to every window that renders one. */
+export function broadcastConnection(report: ConnectionReport): void {
+  for (const contents of webContents.getAllWebContents()) {
+    if (contents.isDestroyed()) continue;
+    contents.send(IPC.connectionChanged, report);
+  }
+}
+
 export function broadcastStatus(status: LinkStatus): void {
   for (const contents of webContents.getAllWebContents()) {
     if (contents.isDestroyed()) continue;
@@ -430,6 +444,20 @@ export function registerIpc(): void {
     const ok = setShortcut(name, accelerator);
     buildMenu();
     return { ok, shortcuts: registeredShortcuts() };
+  });
+
+  // --- connection health -----------------------------------------------------
+  // Read by the offline screen and the chrome bar's banner. `connectionCheck`
+  // is the "Try again" button: it forces a probe rather than waiting out the
+  // backoff, and answers with the result so the page can say what happened.
+  handle(IPC.connectionState, (): ConnectionReport => getConnection());
+  handle(IPC.connectionCheck, (): Promise<ConnectionReport> => checkConnection());
+
+  // A hint from any page, including the web app: its `navigator.onLine`
+  // flipped. Main still verifies with its own probe — `onLine` is true on a
+  // café network whose portal has not been accepted.
+  on(IPC.networkReport, (_event, online: unknown) => {
+    if (typeof online === 'boolean') reportRendererNetwork(online);
   });
 
   // --- desktop chrome bar ----------------------------------------------------

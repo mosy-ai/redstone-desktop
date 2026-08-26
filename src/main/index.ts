@@ -14,7 +14,9 @@ import { authEvents, redstoneSession } from './auth';
 import { initLinks, flushLinks } from './links';
 import { flushServers, hasServer, initServers, knownServers } from './servers';
 import { showServerWindow } from './windows/server-window';
-import { registerIpc, broadcastStatus } from './ipc';
+import { registerIpc, broadcastStatus, broadcastConnection } from './ipc';
+import { onConnectionChange } from './connection';
+import { IPC } from '../shared/types';
 import { buildMenu } from './menu';
 import { createTray, destroyTray, refreshTray } from './tray';
 import { applyShortcuts, releaseShortcuts } from './shortcuts';
@@ -102,6 +104,10 @@ async function bootstrap(): Promise<void> {
   hardenSession();
   registerIpc();
   buildMenu();
+
+  // Every window that draws a connection banner hears about a change from here,
+  // rather than each of them polling on its own timer.
+  onConnectionChange(broadcastConnection);
 
   if (smokeTest) {
     await runSmokeTest();
@@ -231,6 +237,50 @@ async function runUiTest(): Promise<void> {
   setActiveSession(null);
   setActiveSession('ui-test-session', 'url');
   results.urlFallbackSurvivesInternalCalls = getActiveSession() === 'ui-test-session';
+
+  // 3b. A connection problem must be *visible*. It used to be invisible until
+  //     the view went blank, which is how a flaky café network turned into "the
+  //     app is broken". The bar stays silent while everything works, says what
+  //     is wrong while it is wrong, and confirms recovery.
+  const banner = (): Promise<string> =>
+    window.webContents.executeJavaScript(
+      'JSON.stringify({hidden: document.getElementById("net").hidden, text: document.getElementById("net-text").textContent})',
+    );
+
+  results.barIsSilentWhileOnline = JSON.parse(await banner()).hidden === true;
+
+  window.webContents.send(IPC.connectionChanged, {
+    state: 'no-internet',
+    message: '',
+    host: 'redstone.example.com',
+    attempts: 1,
+    since: Date.now(),
+  });
+  await settle();
+  const down = JSON.parse(await banner());
+  results.barWarnsWhenOffline = down.hidden === false && /no internet/i.test(down.text);
+
+  window.webContents.send(IPC.connectionChanged, {
+    state: 'server-unreachable',
+    message: '',
+    host: 'redstone.example.com',
+    attempts: 2,
+    since: Date.now(),
+  });
+  await settle();
+  const unreachable = JSON.parse(await banner());
+  results.barNamesTheServerItCannotReach = /redstone\.example\.com/.test(unreachable.text);
+
+  window.webContents.send(IPC.connectionChanged, {
+    state: 'online',
+    message: '',
+    host: 'redstone.example.com',
+    attempts: 0,
+    since: Date.now(),
+  });
+  await settle();
+  const back = JSON.parse(await banner());
+  results.barConfirmsRecovery = back.hidden === false && /back online/i.test(back.text);
 
   // 4. The drag region is the whole point of the bar existing.
   results.barIsDraggable = await window.webContents.executeJavaScript(

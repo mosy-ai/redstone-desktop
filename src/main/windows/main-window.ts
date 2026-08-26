@@ -26,6 +26,7 @@ import { guardWebContents } from '../security';
 import { setActiveSession } from '../attachments';
 import { isQuitting } from '../lifecycle';
 import { announceSession } from '../session-broadcast';
+import { checkConnection, watchUntilOnline } from '../connection';
 import logger from '../logger';
 
 /** Height of the desktop chrome bar, in DIPs. */
@@ -164,11 +165,81 @@ function watchAppNavigation(contents: Electron.WebContents): void {
   contents.on('did-fail-load', (_e, errorCode, errorDescription, validatedURL, isMainFrame) => {
     // -3 is ERR_ABORTED, which a normal in-app navigation produces.
     if (!isMainFrame || errorCode === -3) return;
-    logger.warn('web app failed to load', { errorCode, errorDescription });
-    void contents.loadFile(rendererFile('offline.html'), {
-      query: { reason: errorDescription, target: validatedURL },
-    });
+    onLoadFailed(contents, errorCode, errorDescription, validatedURL);
   });
+
+  // Chromium finishes loading its *error* page too, and that page keeps the URL
+  // it failed on — so "did-finish-load on a remote URL" is not success, and
+  // treating it as success resets the retry budget into a 1.2s reload loop. The
+  // navigation is only clean if nothing failed since it started.
+  contents.on('did-start-loading', () => {
+    failedThisLoad = false;
+  });
+  contents.on('did-finish-load', () => {
+    if (failedThisLoad) return;
+    if (contents.getURL().startsWith('file:')) return;
+    silentRetried = false;
+  });
+}
+
+/**
+ * One silent retry, then the offline screen.
+ *
+ * A single dropped packet while switching access points fails a navigation, and
+ * replacing a working page with an error screen for that is worse than the blip
+ * — so the first failure is retried quietly. The second is real, and gets an
+ * explanation instead of another attempt: from here recovery is detected by
+ * probing (`connection.ts`), never by reloading the view on a timer. Reloading
+ * on a timer is what made a weak connection flash.
+ */
+let silentRetried = false;
+/** Set by `did-fail-load`, cleared when the next navigation starts. */
+let failedThisLoad = false;
+
+function onLoadFailed(
+  contents: Electron.WebContents,
+  errorCode: number,
+  errorDescription: string,
+  validatedURL: string,
+): void {
+  logger.warn('web app failed to load', { errorCode, errorDescription });
+  failedThisLoad = true;
+
+  if (!silentRetried) {
+    silentRetried = true;
+    setTimeout(() => {
+      if (contents.isDestroyed()) return;
+      // Only if nothing else has claimed the view in the meantime — the user may
+      // have hit reload, or a notification may have opened a conversation.
+      // A *failed* navigation leaves the attempted URL in place, so matching it
+      // is what "still here" looks like; anything else means someone moved on.
+      const now = contents.getURL();
+      if (now && now !== validatedURL) return;
+      void contents.loadURL(validatedURL).catch(() => {
+        /* did-fail-load runs again and takes it from there */
+      });
+    }, 1_200);
+    return;
+  }
+
+  void showOfflineScreen(contents, errorDescription);
+}
+
+async function showOfflineScreen(
+  contents: Electron.WebContents,
+  reason: string,
+): Promise<void> {
+  const report = await checkConnection();
+  if (contents.isDestroyed()) return;
+  // The probe may well have succeeded — a stale DNS answer fails one navigation
+  // while the network is fine. Take the win rather than showing an error.
+  if (report.state === 'online') {
+    silentRetried = false;
+    void loadApp();
+    return;
+  }
+  watchUntilOnline();
+  await contents.loadFile(rendererFile('offline.html'), { query: { reason } });
 }
 
 /** Navigate the web app view to a route. */
@@ -185,6 +256,9 @@ export async function loadApp(
   createMainWindow();
   const contents = getAppContents();
   if (!contents) return;
+  // A deliberate navigation — the menu, a notification, "Try again" — starts a
+  // fresh episode and is allowed its own silent retry.
+  silentRetried = false;
   await contents.loadURL(appUrl(pathname, query)).catch((err: NodeJS.ErrnoException) => {
     // ERR_ABORTED means another navigation superseded this one — routine when
     // the user clicks through quickly, not something to report.

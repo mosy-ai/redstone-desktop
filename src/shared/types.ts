@@ -150,6 +150,28 @@ export interface Settings {
   preferredMicrophoneId: string;
 }
 
+export type ConnectionState =
+  /** The server answered. */
+  | 'online'
+  /** This machine has no network at all — Wi-Fi off, cable out, flight mode. */
+  | 'no-internet'
+  /** The network is up but the instance did not answer, or answered wrong. */
+  | 'server-unreachable'
+  /** A probe is in flight and there is no previous answer to show. */
+  | 'checking';
+
+export interface ConnectionReport {
+  state: ConnectionState;
+  /** One sentence, already phrased for a person. */
+  message: string;
+  /** The instance being talked to, host only — never a full URL with a token. */
+  host: string;
+  /** Consecutive failed probes. 0 whenever the state is `online`. */
+  attempts: number;
+  /** When the current state began, ms since epoch. */
+  since: number;
+}
+
 /** IPC channel names. Renderer→main are `invoke`; main→renderer are `send`. */
 export const IPC = {
   // bridge (remote web app + local pages)
@@ -197,6 +219,13 @@ export const IPC = {
   // desktop chrome bar
   reloadApp: 'redstone:reload-app',
   openStatusWindow: 'redstone:open-status-window',
+
+  // connection health — the offline screen and the chrome bar's banner
+  connectionState: 'redstone:connection-state',
+  connectionCheck: 'redstone:connection-check',
+  connectionChanged: 'redstone:connection-changed',
+  /** Renderer→main hint: this page's `navigator.onLine` flipped. */
+  networkReport: 'redstone:network-report',
 
   // per-conversation folder link
   sessionFolder: 'redstone:session-folder',

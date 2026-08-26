@@ -39,6 +39,39 @@
         </g>
       </svg>
 
+      <!--
+        The one status the bar *should* carry: whether the window can reach the
+        server at all. Unlike sync status it cannot be per-folder, it cannot be
+        acted on anywhere else, and while it is true nothing else in the window
+        works — so silence here is the app appearing to be broken.
+      -->
+      <div class="net" id="net" hidden>
+        <!-- Two icons, one shown at a time: a struck-through signal while the
+             connection is down, a check when it is back. Same 16px grid and
+             1.6 stroke as the reload glyph beside them. -->
+        <svg class="ic ic-down" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+          <path
+            d="M2 8.5a15.5 15.5 0 0 1 6-3.6M13.2 5.2A15.5 15.5 0 0 1 22 8.5M5.5 12.2a11 11 0 0 1 3.2-2M15.6 10.4a11 11 0 0 1 2.9 1.8M9 15.8a6 6 0 0 1 5.2.4M3 3l18 18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <circle cx="12" cy="19.5" r="1.15" fill="currentColor" />
+        </svg>
+        <svg class="ic ic-ok" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+          <path
+            d="M4 12.5l4.5 4.5L20 6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span id="net-text"></span>
+      </div>
+
       <div class="spacer"></div>
 
       <button class="action icon-only" id="reload" type="button" title="Reload Redstone (⌘R)">

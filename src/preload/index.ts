@@ -18,6 +18,7 @@ import {
   type OpenMainWindowOptions,
   type PickFilesOptions,
   type CaptureOptions,
+  type ConnectionReport,
   type LinkFolderOptions,
   type ProbeResult,
   type ServerState,
@@ -167,6 +168,13 @@ const shellOnly = {
   reloadApp: (): Promise<void> => ipcRenderer.invoke(IPC.reloadApp),
   openSyncStatus: (): Promise<void> => ipcRenderer.invoke(IPC.openStatusWindow),
 
+  // connection health — the offline screen and the chrome bar's banner
+  connection: (): Promise<ConnectionReport> => ipcRenderer.invoke(IPC.connectionState),
+  /** Force a probe now, rather than waiting out the backoff. */
+  checkConnection: (): Promise<ConnectionReport> => ipcRenderer.invoke(IPC.connectionCheck),
+  onConnection: (cb: (report: ConnectionReport) => void): Unsubscribe =>
+    subscribe(IPC.connectionChanged, cb),
+
   // server picker — the screen before login, since login lives on the server
   serverState: (): Promise<ServerState> => ipcRenderer.invoke(IPC.serverState),
   probeServer: (input: string): Promise<ProbeResult> => ipcRenderer.invoke(IPC.probeServer, input),
@@ -176,6 +184,18 @@ const shellOnly = {
 } as const;
 
 if (isLocalPage) contextBridge.exposeInMainWorld('redstoneShell', shellOnly);
+
+// --- connection ---------------------------------------------------------------
+// The shell cannot see inside the page, and the page has the one signal the
+// main process lacks: Chromium's own link state. Reported from every page, the
+// web app included, so a dropped connection is noticed the moment it happens
+// instead of at the next probe. It is a hint — main verifies before believing
+// it (see connection.ts).
+const reportNetwork = (): void => {
+  ipcRenderer.send(IPC.networkReport, navigator.onLine);
+};
+window.addEventListener('online', reportNetwork);
+window.addEventListener('offline', reportNetwork);
 
 // --- drag and drop ----------------------------------------------------------
 // Rendered by the shell rather than the web app: `webUtils.getPathForFile` only

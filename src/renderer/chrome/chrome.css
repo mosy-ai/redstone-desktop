@@ -136,3 +136,56 @@ body[data-platform='darwin'] .bar {
   border-color: color-mix(in srgb, var(--clay) 55%, transparent);
   color: var(--clay-soft);
 }
+
+/* Connection banner. Lives in the bar rather than over the page: the web app
+   owns everything below, and an overlay that covers its UI to say "the network
+   is slow" is its own kind of failure. */
+.net {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: 10px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--clay) 45%, transparent);
+  background: color-mix(in srgb, var(--clay) 14%, transparent);
+  color: var(--clay-soft);
+  font-size: 12px;
+  white-space: nowrap;
+  -webkit-app-region: no-drag;
+}
+
+.net[data-tone='ok'] {
+  border-color: color-mix(in srgb, #3f9d54 45%, transparent);
+  background: color-mix(in srgb, #3f9d54 14%, transparent);
+  color: #7fc98f;
+}
+
+.net .ic {
+  display: block;
+  flex: none;
+}
+
+/* One icon per state. */
+.net[data-tone='ok'] .ic-down,
+.net:not([data-tone='ok']) .ic-ok {
+  display: none;
+}
+
+/* Only while disconnected: an icon that keeps pulsing after the connection is
+   back reads as "still broken". */
+.net:not([data-tone='ok']) .ic-down {
+  animation: net-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes net-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .net .ic {
+    animation: none;
+  }
+}

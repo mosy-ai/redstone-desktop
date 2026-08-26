@@ -61,6 +61,7 @@ const builds = [
       { in: path.join(root, 'src/renderer/server/server.ts'), out: 'server' },
       { in: path.join(root, 'src/renderer/chrome/chrome.ts'), out: 'chrome' },
       { in: path.join(root, 'src/renderer/preferences/preferences.ts'), out: 'preferences' },
+      { in: path.join(root, 'src/renderer/offline/offline.ts'), out: 'offline' },
     ],
     outdir: path.join(root, 'dist/renderer'),
     platform: 'browser',

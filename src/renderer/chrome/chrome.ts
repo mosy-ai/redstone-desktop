@@ -26,3 +26,48 @@ document.body.dataset.platform = bridge.platform;
 (document.getElementById('reload') as HTMLButtonElement).addEventListener('click', () => {
   void shell?.reloadApp();
 });
+
+// --- connection ---------------------------------------------------------------
+// A dropped connection used to be invisible until the whole view went blank.
+// The bar is the only part of the window the shell owns, so it is where the
+// warning goes: present while it is true, gone shortly after it stops being.
+
+const net = document.getElementById('net') as HTMLDivElement;
+const netText = document.getElementById('net-text') as HTMLSpanElement;
+let clearTimer: ReturnType<typeof setTimeout> | null = null;
+let wasDown = false;
+
+function showConnection(report: { state: string; host: string }): void {
+  if (clearTimer !== null) {
+    clearTimeout(clearTimer);
+    clearTimer = null;
+  }
+
+  if (report.state === 'online') {
+    // Only worth saying if the user saw it break; otherwise this is the normal
+    // state and deserves no pixels at all.
+    if (!wasDown) {
+      net.hidden = true;
+      return;
+    }
+    wasDown = false;
+    net.dataset.tone = 'ok';
+    netText.textContent = 'Back online';
+    net.hidden = false;
+    clearTimer = setTimeout(() => {
+      net.hidden = true;
+    }, 4000);
+    return;
+  }
+
+  wasDown = true;
+  net.dataset.tone = 'down';
+  netText.textContent =
+    report.state === 'no-internet'
+      ? 'No internet connection'
+      : `Can't reach ${report.host || 'the server'} — reconnecting…`;
+  net.hidden = false;
+}
+
+shell?.onConnection(showConnection);
+void shell?.connection().then(showConnection);

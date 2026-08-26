@@ -49,6 +49,7 @@ refresh anything itself.
 | `npm run smoke` | boots the real main process headlessly and exits non-zero if the shell fails to come up |
 | `npm run pack` | unpacked app for this platform, in `release/` |
 | `npm run dist:mac` / `dist:win` / `dist:linux` | installers |
+| `npm run dist:cross` | Windows + Linux installers, from any host |
 
 ---
 
@@ -172,9 +173,16 @@ cases, no network or disk required.
 
 **There are no native modules**, on purpose — see [docs/DESIGN.md](docs/DESIGN.md).
 The same `dist/` runs on every platform, so cross-building never needs a
-toolchain for someone else's OS. Installers are still built per-OS in CI
-(`.github/workflows/build.yml`), because signing, NSIS and dpkg want a native
-host.
+toolchain for someone else's OS — and in practice it does not need CI either:
+`npm run dist:cross` builds the Windows and Linux installers on a Mac, and was
+verified to produce the same seven artifacts (NSIS x64/arm64/universal, AppImage
+and deb for both architectures) that the Linux and Windows runners do.
+electron-builder fetches its own NSIS, AppImage and fpm toolchains.
+
+CI (`.github/workflows/build.yml`) still builds all three, because it is the
+check that a change compiles and boots on every platform, not just a way to get
+installers. The one thing that genuinely needs a native host is **macOS signing
+and notarization**: those want the Apple certificate in a keychain.
 
 Two things worth knowing before your first local package:
 
