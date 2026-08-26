@@ -242,12 +242,17 @@ async function runUiTest(): Promise<void> {
   //     the view went blank, which is how a flaky café network turned into "the
   //     app is broken". The bar stays silent while everything works, says what
   //     is wrong while it is wrong, and confirms recovery.
+  // Measured on screen, not read off the `hidden` property. The first version
+  // of this check asked the property, passed, and shipped a banner that was
+  // permanently visible as an empty pill: `display: flex` in the stylesheet
+  // outranks the user agent's rule for `[hidden]`. What the user sees is the
+  // only thing worth asserting.
   const banner = (): Promise<string> =>
     window.webContents.executeJavaScript(
-      'JSON.stringify({hidden: document.getElementById("net").hidden, text: document.getElementById("net-text").textContent})',
+      'JSON.stringify({onScreen: document.getElementById("net").getBoundingClientRect().width > 0, text: document.getElementById("net-text").textContent})',
     );
 
-  results.barIsSilentWhileOnline = JSON.parse(await banner()).hidden === true;
+  results.barIsSilentWhileOnline = JSON.parse(await banner()).onScreen === false;
 
   window.webContents.send(IPC.connectionChanged, {
     state: 'no-internet',
@@ -258,7 +263,7 @@ async function runUiTest(): Promise<void> {
   });
   await settle();
   const down = JSON.parse(await banner());
-  results.barWarnsWhenOffline = down.hidden === false && /no internet/i.test(down.text);
+  results.barWarnsWhenOffline = down.onScreen === true && /no internet/i.test(down.text);
 
   window.webContents.send(IPC.connectionChanged, {
     state: 'server-unreachable',
@@ -280,7 +285,7 @@ async function runUiTest(): Promise<void> {
   });
   await settle();
   const back = JSON.parse(await banner());
-  results.barConfirmsRecovery = back.hidden === false && /back online/i.test(back.text);
+  results.barConfirmsRecovery = back.onScreen === true && /back online/i.test(back.text);
 
   // 4. The drag region is the whole point of the bar existing.
   results.barIsDraggable = await window.webContents.executeJavaScript(

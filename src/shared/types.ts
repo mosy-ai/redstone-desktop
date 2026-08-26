@@ -158,7 +158,9 @@ export type ConnectionState =
   /** The network is up but the instance did not answer, or answered wrong. */
   | 'server-unreachable'
   /** A probe is in flight and there is no previous answer to show. */
-  | 'checking';
+  | 'checking'
+  /** Reachable, but the page keeps reloading itself. See `reportReloadStorm`. */
+  | 'unstable';
 
 export interface ConnectionReport {
   state: ConnectionState;

@@ -152,7 +152,16 @@ body[data-platform='darwin'] .bar {
   color: var(--clay-soft);
   font-size: 12px;
   white-space: nowrap;
+  min-width: 0;
+  max-width: min(52ch, 46vw);
   -webkit-app-region: no-drag;
+}
+
+/* `display: flex` outranks the user agent's `[hidden] { display: none }`, so
+   without this the banner renders as an empty pill whenever it is meant to be
+   gone — which is most of the time. */
+.net[hidden] {
+  display: none;
 }
 
 .net[data-tone='ok'] {
@@ -164,6 +173,14 @@ body[data-platform='darwin'] .bar {
 .net .ic {
   display: block;
   flex: none;
+}
+
+/* The bar is as wide as the window and no wider. A message long enough to
+   overflow is truncated with the full text on hover, rather than pushing the
+   reload button off the end. */
+.net #net-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* One icon per state. */

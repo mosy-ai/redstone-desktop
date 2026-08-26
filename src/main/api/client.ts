@@ -120,11 +120,38 @@ async function request(endpoint: string, opts: RequestOptions = {}): Promise<Res
   if (res.status === 401) reportUnauthorized();
   let detail = '';
   try {
-    detail = (await res.text()).slice(0, 300);
+    detail = (await res.text()).slice(0, 2_000);
   } catch {
     /* body already consumed or empty */
   }
-  throw new ApiError(res.status, endpoint, detail || undefined);
+  throw new ApiError(res.status, endpoint, summariseErrorBody(detail, res.status, endpoint));
+}
+
+/**
+ * What to put in the error, given a body that may not be from Redstone at all.
+ *
+ * A request that never reaches the server still comes back with a body: a
+ * proxy's HTML error page. Using it verbatim buries the one fact worth having —
+ * the status — under a screenful of markup, in the log and in anything the user
+ * is shown. So HTML is reduced to its title and labelled as coming from
+ * somewhere in between, and only a real API message is passed through.
+ */
+export function summariseErrorBody(body: string, status: number, endpoint: string): string {
+  const text = body.trim();
+  if (!text) return `${endpoint} failed with ${status}`;
+
+  if (/^<(?:!doctype|html|\?xml)/i.test(text)) {
+    const title = /<title[^>]*>([^<]{1,120})<\/title>/i.exec(text)?.[1]?.trim();
+    const where = title ? `: ${title}` : '';
+    // Cloudflare and friends answer for the origin when it is slow or the body
+    // is too big — worth saying, because "the server said no" would send the
+    // user to the wrong place.
+    return `${endpoint} failed with ${status} — an HTML error page from a proxy or gateway${where}`;
+  }
+
+  // JSON error envelopes are already short and specific; anything else is
+  // capped so one runaway response cannot fill the log.
+  return text.slice(0, 300);
 }
 
 const stripHash = (h: string | null | undefined): string | null =>

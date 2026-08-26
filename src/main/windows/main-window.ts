@@ -26,7 +26,7 @@ import { guardWebContents } from '../security';
 import { setActiveSession } from '../attachments';
 import { isQuitting } from '../lifecycle';
 import { announceSession } from '../session-broadcast';
-import { checkConnection, watchUntilOnline } from '../connection';
+import { checkConnection, reportReloadStorm, watchUntilOnline } from '../connection';
 import logger from '../logger';
 
 /** Height of the desktop chrome bar, in DIPs. */
@@ -159,6 +159,15 @@ function watchAppNavigation(contents: Electron.WebContents): void {
     setActiveSession(sessionId, 'url');
     void announceSession(sessionId, isChat);
   };
+  // The paper trail that was missing when the window "kept refreshing": a
+  // reload the *page* starts leaves no other trace in the main process — no
+  // failed load, and repeat bridge calls are only logged once per channel. The
+  // path is logged without the query, which carries conversation ids.
+  contents.on('did-start-navigation', (details) => {
+    if (!details.isMainFrame || details.isSameDocument) return;
+    noteNavigation(pathOf(details.url));
+  });
+
   contents.on('did-navigate', (_e, url) => read(url));
   contents.on('did-navigate-in-page', (_e, url) => read(url));
 
@@ -240,6 +249,49 @@ async function showOfflineScreen(
   }
   watchUntilOnline();
   await contents.loadFile(rendererFile('offline.html'), { query: { reason } });
+}
+
+/** Timestamps of recent full-page loads, newest last. */
+const recentLoads: number[] = [];
+/** Enough reloads in this window to call it a storm rather than a navigation. */
+const STORM_WINDOW_MS = 20_000;
+const STORM_COUNT = 5;
+let stormAnnounced = false;
+
+function pathOf(rawUrl: string): string {
+  try {
+    return new URL(rawUrl).pathname;
+  } catch {
+    return 'unparseable';
+  }
+}
+
+/**
+ * Record a full-page load, and notice when they are coming too fast.
+ *
+ * A single-page app should navigate within the document; a burst of *document*
+ * loads means something is reloading it. Naming that beats leaving the user to
+ * describe it as flashing.
+ */
+function noteNavigation(pathname: string): void {
+  const now = Date.now();
+  recentLoads.push(now);
+  while (recentLoads.length && now - recentLoads[0]! > STORM_WINDOW_MS) recentLoads.shift();
+  logger.info('web app loaded a document', { path: pathname, inLast20s: recentLoads.length });
+
+  if (recentLoads.length < STORM_COUNT) {
+    stormAnnounced = false;
+    return;
+  }
+  // Announced once per storm: the point is to tell the user, not to fill the log
+  // with the thing we are complaining about.
+  if (stormAnnounced) return;
+  stormAnnounced = true;
+  logger.warn('the web app is reloading itself repeatedly', {
+    loads: recentLoads.length,
+    windowSeconds: STORM_WINDOW_MS / 1000,
+  });
+  reportReloadStorm(recentLoads.length);
 }
 
 /** Navigate the web app view to a route. */

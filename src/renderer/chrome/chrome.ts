@@ -37,7 +37,7 @@ const netText = document.getElementById('net-text') as HTMLSpanElement;
 let clearTimer: ReturnType<typeof setTimeout> | null = null;
 let wasDown = false;
 
-function showConnection(report: { state: string; host: string }): void {
+function showConnection(report: { state: string; host: string; message?: string }): void {
   if (clearTimer !== null) {
     clearTimeout(clearTimer);
     clearTimer = null;
@@ -65,7 +65,14 @@ function showConnection(report: { state: string; host: string }): void {
   netText.textContent =
     report.state === 'no-internet'
       ? 'No internet connection'
-      : `Can't reach ${report.host || 'the server'} — reconnecting…`;
+      : report.state === 'unstable'
+        ? // The page is reloading itself; the shell is only the messenger, so
+          // it uses the wording the main process chose rather than inventing
+          // its own account of a problem it does not own.
+          (report.message ?? 'The page keeps reloading')
+        : `Can't reach ${report.host || 'the server'} — reconnecting…`;
+  // Truncated in the bar; the whole sentence is one hover away.
+  net.title = netText.textContent ?? '';
   net.hidden = false;
 }
 

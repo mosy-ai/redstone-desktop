@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.2.3 — 26 Aug 2026
+
+### Fixed
+- **The connection banner appeared as an empty pill while everything was fine.**
+  `display: flex` in the stylesheet outranks the browser's rule for `[hidden]`,
+  so the banner never actually went away. The regression test asked the element
+  for its `hidden` property, which was correctly `true` — it now measures what
+  is on screen instead, and fails on the old stylesheet.
+- Long connection messages no longer push the reload button off the end of the
+  bar; they truncate, with the full text on hover.
+
+### Added
+- **A reload the web app starts is now logged.** When the window "keeps
+  refreshing", a page reloading *itself* left no trace in the shell: no failed
+  load, and repeat bridge calls are only logged once per channel. Every
+  full-page load is recorded with its path.
+- **Repeated self-reloads are named.** Five or more full page loads within
+  twenty seconds is reported as "the page keeps reloading — the server may be
+  unstable", once per episode, rather than leaving the user to describe a
+  flashing window.
+
+### Changed
+- An HTML error page from a proxy or gateway is summarised as such, with the
+  status and the page title, instead of pasting a screenful of markup into the
+  log and error messages.
+
 ## 0.2.2 — 26 Aug 2026
 
 ### Fixed

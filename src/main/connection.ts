@@ -181,6 +181,35 @@ export function stopWatching(): void {
 }
 
 /**
+ * The web app reloaded itself several times in a few seconds.
+ *
+ * Not our navigation — the page's own. A Next.js dev server's HMR client does
+ * this when its websocket drops and reconnects, so a weak network turns into a
+ * strobing window with nothing in the shell's log to show for it. The shell
+ * cannot stop the page reloading itself, but it can name what is happening
+ * instead of leaving the user watching a flashing screen.
+ */
+export function reportReloadStorm(count: number): void {
+  publish({
+    state: 'unstable',
+    message: `The page keeps reloading (${count} times) — the server may be unstable`,
+    host: report.host,
+    attempts: 0,
+  });
+  if (calmTimer) clearTimeout(calmTimer);
+  calmTimer = setTimeout(() => {
+    calmTimer = null;
+    if (report.state !== 'unstable') return;
+    void checkConnection();
+  }, CALM_MS);
+  calmTimer.unref?.();
+}
+
+/** How long the page must stay put before the warning is withdrawn. */
+const CALM_MS = 30_000;
+let calmTimer: NodeJS.Timeout | null = null;
+
+/**
  * A page told us its `navigator.onLine` flipped.
  *
  * A hint, never the verdict: `onLine` is true on any café Wi-Fi whose portal
