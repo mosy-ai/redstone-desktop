@@ -241,7 +241,7 @@ async function runUiTest(): Promise<void> {
   // 3b. A connection problem must be *visible*. It used to be invisible until
   //     the view went blank, which is how a flaky café network turned into "the
   //     app is broken". The bar stays silent while everything works, says what
-  //     is wrong while it is wrong, and confirms recovery.
+  //     is wrong while it is wrong, and says nothing at all once it is over.
   // Measured on screen, not read off the `hidden` property. The first version
   // of this check asked the property, passed, and shipped a banner that was
   // permanently visible as an empty pill: `display: flex` in the stylesheet
@@ -285,7 +285,9 @@ async function runUiTest(): Promise<void> {
   });
   await settle();
   const back = JSON.parse(await banner());
-  results.barConfirmsRecovery = back.onScreen === true && /back online/i.test(back.text);
+  // Recovery is silence. A confirmation the user has to watch disappear is one
+  // more thing in the way of the work.
+  results.barGoesSilentOnRecovery = back.onScreen === false;
 
   // 4. The drag region is the whole point of the bar existing.
   results.barIsDraggable = await window.webContents.executeJavaScript(

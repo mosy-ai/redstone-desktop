@@ -164,12 +164,6 @@ body[data-platform='darwin'] .bar {
   display: none;
 }
 
-.net[data-tone='ok'] {
-  border-color: color-mix(in srgb, #3f9d54 45%, transparent);
-  background: color-mix(in srgb, #3f9d54 14%, transparent);
-  color: #7fc98f;
-}
-
 .net .ic {
   display: block;
   flex: none;
@@ -183,15 +177,7 @@ body[data-platform='darwin'] .bar {
   text-overflow: ellipsis;
 }
 
-/* One icon per state. */
-.net[data-tone='ok'] .ic-down,
-.net:not([data-tone='ok']) .ic-ok {
-  display: none;
-}
-
-/* Only while disconnected: an icon that keeps pulsing after the connection is
-   back reads as "still broken". */
-.net:not([data-tone='ok']) .ic-down {
+.net .ic-down {
   animation: net-pulse 1.6s ease-in-out infinite;
 }
 
