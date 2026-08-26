@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.2 — 26 Aug 2026
+
+### Fixed
+- **A weak connection no longer makes the window flash.** The offline screen
+  retried by re-opening the main window on a fixed 15-second timer, so an
+  intermittent connection produced a loop — error screen, reload, fail, error
+  screen — that also raised and focused the window on top of whatever the user
+  was doing. Recovery is now detected by probing the server's health endpoint on
+  a backoff that grows from 2s to 60s, and the view is navigated once, after the
+  server has already answered.
+- **One dropped packet no longer replaces a working page with an error.** The
+  first failed load is retried quietly; only the second shows the offline
+  screen.
+
+### Added
+- **A connection banner in the desktop bar.** Until now a dropped connection was
+  invisible until the whole view went blank. The bar names the failure —
+  "No internet connection" against "Can't reach <server>" — because those need
+  different reactions, and confirms when the connection is back.
+- The offline screen says which failure it is, counts down to the next check,
+  and comes back on its own when the network returns.
+
 ## 0.2.1 — 25 Aug 2026
 
 Signed and notarized by Apple. 0.2.0 was ad-hoc signed, so macOS refused to open
