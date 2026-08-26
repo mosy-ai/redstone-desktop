@@ -10,6 +10,9 @@
   is on screen instead, and fails on the old stylesheet.
 - Long connection messages no longer push the reload button off the end of the
   bar; they truncate, with the full text on hover.
+- The bar no longer confirms recovery. A working connection is the normal state
+  and gets no pixels: the banner appears when something is wrong and disappears
+  when it is over.
 
 ### Added
 - **A reload the web app starts is now logged.** When the window "keeps
