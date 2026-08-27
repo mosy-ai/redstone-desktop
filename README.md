@@ -189,10 +189,13 @@ Two things worth knowing before your first local package:
 - **Set `REDSTONE_UPDATE_URL`** for any build you intend to ship. It is
   interpolated into `app-update.yml`; without it the packaged app has no update
   feed (`--dir` builds do not care).
-- **electron-builder refuses output paths containing shell-special characters**,
-  so a checkout under a directory like `Na's Mac Data` needs
-  `--config.directories.output=/some/plain/path`. Nothing else in the build
-  minds.
+- **A checkout path containing a shell metacharacter** — an apostrophe, as in
+  `/Volumes/Na's Mac Data` — breaks the steps electron-builder shells out for
+  (codesign, hdiutil, fpm), and it fails late, in the middle of signing, as a
+  quoting error from a tool you did not invoke. `npm run dist:*` goes through
+  `scripts/package.mjs`, which notices and writes artifacts somewhere plain,
+  printing where. On an ordinary path it is exactly electron-builder writing to
+  `release/`, as before.
 
 Updates use `electron-updater` against a static feed (`REDSTONE_UPDATE_URL`):
 checked on launch and every 6 hours, applied on next launch unless you choose to
