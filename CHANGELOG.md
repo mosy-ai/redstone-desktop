@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.2.4 — 27 Aug 2026
+
+Chasing a report of the window "flashing like crazy". It was neither a reload
+nor a connection problem — the page runs no JavaScript at all while it happens.
+
+### Added
+- **"Pause decorative background animation"** in desktop settings, off by
+  default. The web app animates `scale` on four background elements carrying
+  `filter: blur(90-110px)`, infinitely. Scaling a blurred element cannot reuse
+  its raster, so the browser recomputes the blur every frame — measured at 45%
+  of a CPU core, continuously, and it does not stop when the window is hidden
+  because notifications require `backgroundThrottling: false`. Pausing exactly
+  those four animations took the GPU process to 0.0%. Only *infinite* animations
+  on *blurred* elements are paused, so spinners still move. The real fix belongs
+  to the web app; this is a mitigation until it lands.
+- **Instrumentation for problems the shell could not previously see**, each
+  verified against a deliberately broken page rather than assumed to work:
+  sustained CPU in the renderer and GPU processes, the page's own console
+  warnings and errors (deduplicated, so a loop cannot flood the log), and the
+  rate of network requests per path, counted in the existing allowlist hook.
+  Websocket redials are counted separately.
+
+### Fixed
+- An HTML error page from a proxy is summarised with its status and title. This
+  immediately turned an unreadable wall of markup into
+  `/folders/.../files failed with 524 — ... 524: A timeout occurred`.
+
 ## 0.2.3 — 26 Aug 2026
 
 ### Fixed
