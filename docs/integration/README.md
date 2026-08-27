@@ -47,3 +47,14 @@ they want it.
 The desktop never sends a message, never renders chat, and never reimplements
 anything the web app already does. It contributes exactly what a browser cannot:
 the local filesystem, the screen, and a window that outlives a tab.
+
+## Follow-ups
+
+Numbered documents above are the standing contract: what the web app needs to
+implement, frozen once written. Anything found later — a live diagnosis, a
+regression, a measurement — is written as a dated follow-up and **delivered
+directly rather than committed**, because those notes name instance hostnames
+and describe where infrastructure gives way, and this repository is public.
+
+If a commit message refers to `docs/integration/followups/<date>-<n>`, that file
+was handed to the maintainer; it is deliberately not in git.
