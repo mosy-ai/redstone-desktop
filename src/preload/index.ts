@@ -185,6 +185,59 @@ const shellOnly = {
 
 if (isLocalPage) contextBridge.exposeInMainWorld('redstoneShell', shellOnly);
 
+// --- decorative animation ------------------------------------------------------
+// A mitigation for someone else's CSS, kept as narrow as honesty allows.
+//
+// The web app animates `scale` on four background blobs carrying
+// `filter: blur(90-110px)`. Scaling a blurred element cannot be composited from
+// an existing raster — the blur is recomputed every frame — which measured at
+// 45% of a CPU core, continuously, forever, and does not stop when the window
+// is hidden because notifications need `backgroundThrottling: false`.
+//
+// Only *infinite* animations on *blurred* elements are paused, so spinners,
+// progress bars and transitions are untouched. Off unless the user asks for it
+// in desktop settings: this is their product's design, not ours to override.
+
+let reduceMotion = false;
+
+const isDecorative = (el: Element): boolean => {
+  const style = getComputedStyle(el);
+  if (style.animationName === 'none') return false;
+  if (!style.animationIterationCount.split(',').some((n) => n.trim() === 'infinite')) return false;
+  return style.filter !== 'none' && /blur/.test(style.filter);
+};
+
+const setPlayState = (el: Element, state: 'paused' | 'running'): void => {
+  (el as HTMLElement).style.animationPlayState = state;
+};
+
+// `animationstart` bubbles, so one capturing listener covers everything the page
+// renders now and everything it renders later — no polling, no MutationObserver.
+window.addEventListener(
+  'animationstart',
+  (event) => {
+    if (!reduceMotion) return;
+    const target = event.target;
+    if (target instanceof Element && isDecorative(target)) setPlayState(target, 'paused');
+  },
+  true,
+);
+
+function applyReduceMotion(enabled: boolean): void {
+  reduceMotion = enabled;
+  // Animations already running when the setting changed, or when the page was
+  // restored from bfcache, never fire `animationstart` again.
+  for (const el of document.querySelectorAll('*')) {
+    if (enabled) {
+      if (isDecorative(el)) setPlayState(el, 'paused');
+    } else if ((el as HTMLElement).style.animationPlayState === 'paused') {
+      setPlayState(el, 'running');
+    }
+  }
+}
+
+ipcRenderer.on(IPC.reduceMotion, (_event, enabled: boolean) => applyReduceMotion(Boolean(enabled)));
+
 // --- connection ---------------------------------------------------------------
 // The shell cannot see inside the page, and the page has the one signal the
 // main process lacks: Chromium's own link state. Reported from every page, the

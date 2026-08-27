@@ -16,6 +16,7 @@ import { flushServers, hasServer, initServers, knownServers } from './servers';
 import { showServerWindow } from './windows/server-window';
 import { registerIpc, broadcastStatus, broadcastConnection } from './ipc';
 import { onConnectionChange } from './connection';
+import { startRenderHealth, stopRenderHealth } from './render-health';
 import { IPC } from '../shared/types';
 import { buildMenu } from './menu';
 import { createTray, destroyTray, refreshTray } from './tray';
@@ -108,6 +109,7 @@ async function bootstrap(): Promise<void> {
   // Every window that draws a connection banner hears about a change from here,
   // rather than each of them polling on its own timer.
   onConnectionChange(broadcastConnection);
+  startRenderHealth();
 
   if (smokeTest) {
     await runSmokeTest();
@@ -179,6 +181,7 @@ async function shutdown(): Promise<void> {
   logger.info('shutting down');
   releaseShortcuts();
   stopUpdater();
+  stopRenderHealth();
   destroyTray();
 
   // Chromium writes cookies and local storage lazily, and `app.exit()` does not

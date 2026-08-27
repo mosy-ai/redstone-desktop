@@ -14,6 +14,7 @@ import { getSettings } from './settings';
 import { ensureMicrophoneAccess } from './media-access';
 import { LOCAL_SCHEMES, isAllowedUrl, siblingSuffix } from '../shared/origins';
 import logger from './logger';
+import { noteRequest } from './render-health';
 
 /**
  * The Redstone origin, plus the storage host (spec §3).
@@ -39,7 +40,13 @@ export function hardenSession(): void {
   const ses: Session = redstoneSession();
 
   ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, callback) => {
-    if (isAllowed(details.url)) return callback({ cancel: false });
+    if (isAllowed(details.url)) {
+      // Counted here because this hook already sees every request and Electron
+      // allows only one listener per event — a second one would replace this
+      // allowlist rather than run beside it.
+      noteRequest(details.url, details.resourceType);
+      return callback({ cancel: false });
+    }
     logger.warn('blocked request to disallowed origin', { origin: safeOrigin(details.url) });
     callback({ cancel: true });
   });

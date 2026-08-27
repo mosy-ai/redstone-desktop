@@ -21,12 +21,14 @@ import { BrowserWindow, WebContentsView, app, nativeTheme, screen } from 'electr
 import path from 'node:path';
 import { SESSION_PARTITION, ROUTES } from '../../shared/constants';
 import { appUrl, getSettings } from '../settings';
+import { IPC } from '../../shared/types';
 import { showServerWindow } from './server-window';
 import { guardWebContents } from '../security';
 import { setActiveSession } from '../attachments';
 import { isQuitting } from '../lifecycle';
 import { announceSession } from '../session-broadcast';
 import { checkConnection, reportReloadStorm, watchUntilOnline } from '../connection';
+import { watchConsole } from '../render-health';
 import logger from '../logger';
 
 /** Height of the desktop chrome bar, in DIPs. */
@@ -92,6 +94,7 @@ export function createMainWindow(): BrowserWindow {
   win.contentView.addChildView(appView);
   guardWebContents(appView.webContents);
   watchAppNavigation(appView.webContents);
+  watchConsole(appView.webContents);
 
   layout();
   win.on('resize', layout);
@@ -185,10 +188,19 @@ function watchAppNavigation(contents: Electron.WebContents): void {
     failedThisLoad = false;
   });
   contents.on('did-finish-load', () => {
+    // The page is new, so the preload's flag is back to its default.
+    pushReduceMotion();
     if (failedThisLoad) return;
     if (contents.getURL().startsWith('file:')) return;
     silentRetried = false;
   });
+}
+
+/** Tell the web app's page whether to pause decorative background animations. */
+export function pushReduceMotion(): void {
+  const contents = getAppContents();
+  if (!contents || contents.isDestroyed()) return;
+  contents.send(IPC.reduceMotion, getSettings().reduceBackgroundAnimation);
 }
 
 /**

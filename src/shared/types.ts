@@ -148,6 +148,18 @@ export interface Settings {
    * bridge. Empty means "whatever the system default is".
    */
   preferredMicrophoneId: string;
+
+  /**
+   * Pause the web app's decorative background animations.
+   *
+   * Measured on an M1 Pro: four blurred blobs animating `scale` behind the chat
+   * hold the GPU process at 45% of a core continuously — the browser has to
+   * re-rasterise a 90-110px blur every frame — and keep doing it while the
+   * window is hidden, because the notification event stream needs
+   * `backgroundThrottling: false`. Only infinite animations on blurred elements
+   * are paused, so spinners and progress indicators still move.
+   */
+  reduceBackgroundAnimation: boolean;
 }
 
 export type ConnectionState =
@@ -221,6 +233,9 @@ export const IPC = {
   // desktop chrome bar
   reloadApp: 'redstone:reload-app',
   openStatusWindow: 'redstone:open-status-window',
+
+  /** main → the web app's page: whether to pause decorative animations. */
+  reduceMotion: 'redstone:reduce-motion',
 
   // connection health — the offline screen and the chrome bar's banner
   connectionState: 'redstone:connection-state',

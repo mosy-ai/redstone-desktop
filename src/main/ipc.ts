@@ -39,6 +39,7 @@ import {
   focusMainWindow,
   getMainWindow,
   loadApp,
+  pushReduceMotion,
   reloadApp,
   showMainWindow,
 } from './windows/main-window';
@@ -324,7 +325,13 @@ export function registerIpc(): void {
     if (typeof patch.maxSyncFileBytes === 'number' && Number.isFinite(patch.maxSyncFileBytes)) {
       safe.maxSyncFileBytes = Math.max(1, Math.min(patch.maxSyncFileBytes, SYNC.maxFileBytes));
     }
-    return updateSettings(safe);
+    if (typeof patch.reduceBackgroundAnimation === 'boolean') {
+      safe.reduceBackgroundAnimation = patch.reduceBackgroundAnimation;
+    }
+    const saved = updateSettings(safe);
+    // Takes effect on the open page, not just the next one.
+    if (safe.reduceBackgroundAnimation !== undefined) pushReduceMotion();
+    return saved;
   });
 
   // --- server picker ---------------------------------------------------------

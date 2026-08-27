@@ -23,6 +23,7 @@ const defaults = (): Settings => ({
   allowedOrigins: [],
   maxSyncFileBytes: SYNC.maxFileBytes,
   preferredMicrophoneId: '',
+  reduceBackgroundAnimation: false,
 });
 
 let store: JsonStore<Settings> | null = null;

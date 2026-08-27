@@ -60,6 +60,7 @@ async function refresh(): Promise<void> {
   const [info, settings] = await Promise.all([bridge.info(), shell!.getSettings()]);
   paint(info, settings);
   $<HTMLInputElement>('launchAtLogin').checked = settings.launchAtLogin;
+  $<HTMLInputElement>('reduceBackgroundAnimation').checked = settings.reduceBackgroundAnimation;
   $<HTMLElement>('serverOrigin').textContent = settings.appOrigin.replace(/^https?:\/\//, '') || '—';
   $<HTMLElement>('version').textContent = `Redstone ${info.version} · ${info.platform}`;
 }
@@ -141,6 +142,12 @@ async function apply(name: Name, accelerator: string): Promise<void> {
 }
 
 // --- the rest --------------------------------------------------------------
+
+$<HTMLInputElement>('reduceBackgroundAnimation').addEventListener('change', (event) => {
+  void shell!.setSettings({
+    reduceBackgroundAnimation: (event.target as HTMLInputElement).checked,
+  });
+});
 
 $<HTMLInputElement>('launchAtLogin').addEventListener('change', (event) => {
   void shell!.setSettings({ launchAtLogin: (event.target as HTMLInputElement).checked });
