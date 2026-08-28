@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.5 — 28 Aug 2026
+
+### Fixed
+- **A new chat no longer inherits the previous conversation.** `sessionFolder()`
+  with no argument means "whichever conversation is open", and the shell ignored
+  the URL entirely once the web app had reported a conversation once. Clicking
+  New chat navigates to `/chat` with no `?s=`, which the shell dismissed as
+  "just the URL again" — so it kept answering with the chat you had just left,
+  and every session-scoped answer described the wrong one. A URL naming a
+  conversation still never overrules the page; a URL naming none now clears it,
+  on deployments whose chat URLs carry `?s=` at all.
+
 ## 0.2.4 — 27 Aug 2026
 
 Chasing a report of the window "flashing like crazy". It was neither a reload
