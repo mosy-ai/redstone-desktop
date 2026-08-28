@@ -24,7 +24,7 @@ import { appUrl, getSettings } from '../settings';
 import { IPC } from '../../shared/types';
 import { showServerWindow } from './server-window';
 import { guardWebContents } from '../security';
-import { setActiveSession } from '../attachments';
+import { noteNoConversationInUrl, setActiveSession } from '../attachments';
 import { isQuitting } from '../lifecycle';
 import { announceSession } from '../session-broadcast';
 import { checkConnection, reportReloadStorm, watchUntilOnline } from '../connection';
@@ -159,6 +159,12 @@ function watchAppNavigation(contents: Electron.WebContents): void {
     if (sessionId === current && isChat === onChat) return;
     current = sessionId;
     onChat = isChat;
+    if (isChat && !sessionId) {
+      // A new chat. Say so, rather than leaving the previous conversation
+      // standing in for one that does not exist yet — see
+      // `noteNoConversationInUrl`.
+      noteNoConversationInUrl();
+    }
     setActiveSession(sessionId, 'url');
     void announceSession(sessionId, isChat);
   };

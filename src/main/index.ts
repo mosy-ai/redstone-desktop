@@ -27,7 +27,12 @@ import { initUpdater, stopUpdater } from './updater';
 import { notifyConflict, notifySignedOut, notifySyncError } from './notifications';
 import { beginQuitting } from './lifecycle';
 import { runE2E } from './e2e';
-import { getActiveSession, setActiveSession } from './attachments';
+import {
+  getActiveSession,
+  noteNoConversationInUrl,
+  resetSessionTrackingForTest,
+  setActiveSession,
+} from './attachments';
 import { announceSession } from './session-broadcast';
 import { preloadPath } from './windows/main-window';
 
@@ -291,6 +296,27 @@ async function runUiTest(): Promise<void> {
   // Recovery is silence. A confirmation the user has to watch disappear is one
   // more thing in the way of the work.
   results.barGoesSilentOnRecovery = back.onScreen === false;
+
+  // 3c. A new chat must not inherit the previous conversation. Reported as "a
+  //     new session randomly attaches a folder, and the sync status keeps
+  //     flashing in the chat bar": the web app asks the shell which folder this
+  //     conversation uses, the shell answered with the last conversation it had
+  //     been told about, and every session-scoped answer described the wrong
+  //     chat. Reproduced against the live app before it was fixed.
+  setActiveSession(null, 'shell');
+  setActiveSession('conversation-in-the-url', 'url');
+  setActiveSession('conversation-the-page-reported', 'web-app');
+  noteNoConversationInUrl();
+  results.newChatDoesNotInheritThePreviousOne = getActiveSession() === null;
+
+  // The same clearing must not fire where chat URLs never carry a conversation
+  // at all — there, an absent id says nothing, and acting on it would discard
+  // what the web app reported.
+  resetSessionTrackingForTest();
+  setActiveSession('reported-without-any-url', 'web-app');
+  noteNoConversationInUrl();
+  results.silentUrlsDoNotClearWhatThePageReported =
+    getActiveSession() === 'reported-without-any-url';
 
   // 4. The drag region is the whole point of the bar existing.
   results.barIsDraggable = await window.webContents.executeJavaScript(

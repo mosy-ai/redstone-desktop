@@ -36,6 +36,7 @@ export type SessionSource = 'web-app' | 'url' | 'shell';
  */
 export function setActiveSession(sessionId: string | null, source: SessionSource = 'shell'): void {
   if (source === 'url' && webAppReports) return;
+  if (source === 'url' && sessionId) urlsCarrySession = true;
   if (source === 'web-app' && !webAppReports) {
     webAppReports = true;
     logger.info('web app reports the active session — no longer reading it from the URL');
@@ -43,6 +44,48 @@ export function setActiveSession(sessionId: string | null, source: SessionSource
   if (sessionId === activeSessionId) return;
   activeSessionId = sessionId;
   logger.info(`active session changed (${source})`);
+}
+
+/**
+ * True once a chat URL on this deployment has been seen carrying `?s=`, which
+ * is what makes its *absence* meaningful rather than merely uninformative.
+ */
+let urlsCarrySession = false;
+
+/**
+ * The window is on the chat screen with no conversation named in the URL — a
+ * new chat.
+ *
+ * This clears the active conversation even after the web app has taken over
+ * reporting, which the ordinary URL guess is not allowed to do. The asymmetry is
+ * deliberate and it is the whole point:
+ *
+ *   - a URL *naming* a conversation may be stale relative to what the page has
+ *     since told us, so it must not overrule the page;
+ *   - a URL naming *none* is evidence that the previous one is no longer open,
+ *     and keeping it is not a harmless guess — every session-scoped answer then
+ *     describes the wrong conversation. A new chat was reporting the previous
+ *     chat's folder, and its sync status with it.
+ *
+ * Only on deployments whose chat URLs carry `?s=` at all: where they never do,
+ * an absent id says nothing and clearing on it would throw away what the web
+ * app reported.
+ */
+export function noteNoConversationInUrl(): void {
+  if (!urlsCarrySession || webAppOwnsNothingYet()) return;
+  if (activeSessionId === null) return;
+  activeSessionId = null;
+  logger.info('active session cleared (chat route with no conversation)');
+}
+
+/** Nothing to clear before anyone has reported anything. */
+const webAppOwnsNothingYet = (): boolean => activeSessionId === null;
+
+/** Test seam: `--ui-test` needs a clean slate between the cases it checks. */
+export function resetSessionTrackingForTest(): void {
+  activeSessionId = null;
+  webAppReports = false;
+  urlsCarrySession = false;
 }
 
 /** Whether the web app drives session tracking on this deployment. */
