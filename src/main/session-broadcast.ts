@@ -9,6 +9,19 @@ import { IPC } from '../shared/types';
 import { sessionFolderState } from './session-folder';
 import logger from './logger';
 
+/**
+ * The folder the open conversation works in, as last announced.
+ *
+ * Cached because it decides who gets sync updates, and that decision happens on
+ * every status change — several times a second while a folder is syncing. It
+ * cannot go and ask the server each time.
+ */
+let conversationFolderId: string | null = null;
+
+export function currentConversationFolderId(): string | null {
+  return conversationFolderId;
+}
+
 export async function announceSession(
   sessionId: string | null,
   onChatRoute = false,
@@ -27,6 +40,7 @@ export async function announceSession(
       webAppRendersFolderControl: false,
     };
   }
+  conversationFolderId = state.folderId ?? null;
   for (const contents of webContents.getAllWebContents()) {
     if (!contents.isDestroyed()) contents.send(IPC.sessionChanged, state);
   }

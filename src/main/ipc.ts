@@ -34,7 +34,7 @@ import {
   sessionFolderState,
   unlinkSessionFolder,
 } from './session-folder';
-import { announceSession } from './session-broadcast';
+import { announceSession, currentConversationFolderId } from './session-broadcast';
 import {
   focusMainWindow,
   getMainWindow,
@@ -91,11 +91,45 @@ export function broadcastConnection(report: ConnectionReport): void {
   }
 }
 
+/**
+ * Send a sync status to the windows that should act on it.
+ *
+ * The shell's own pages — the Folder Sync Status window, the tray's menu — are
+ * about *all* folders on this machine and get everything.
+ *
+ * The web app is not. Its UI is per-conversation, and a stream carrying every
+ * folder this machine syncs, several updates a second, is not something a chat
+ * screen can render correctly: it painted whichever folder ticked last into
+ * whatever chat was open, and repainted on the next tick. `LinkStatus` has no
+ * conversation id to filter on, and cannot have one — a folder here is a space,
+ * shared by many conversations — so the filtering happens on this side, against
+ * the conversation the shell knows is open.
+ */
 export function broadcastStatus(status: LinkStatus): void {
+  const openFolder = currentConversationFolderId();
   for (const contents of webContents.getAllWebContents()) {
     if (contents.isDestroyed()) continue;
+    if (!wantsStatus(isShellPage(contents.getURL()), status.folderId, openFolder)) continue;
     contents.send(IPC.syncStatus, status);
   }
+}
+
+/** The shell ships its own pages as `file:`; anything else is the web app. */
+export const isShellPage = (url: string): boolean => url.startsWith('file:');
+
+/**
+ * Pure, so the rule can be tested without a window: shell pages see every
+ * folder, the web app sees only the open conversation's — and nothing at all
+ * when no conversation is open, which is the case a new chat used to get wrong.
+ */
+export function wantsStatus(
+  shellPage: boolean,
+  statusFolderId: string,
+  openConversationFolderId: string | null,
+): boolean {
+  if (shellPage) return true;
+  if (!openConversationFolderId) return false;
+  return statusFolderId === openConversationFolderId;
 }
 
 /**

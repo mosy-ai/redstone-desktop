@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.6 — 29 Aug 2026
+
+### Fixed
+- **A folder no longer appears in a chat that does not own it.** The shell sent
+  every folder's sync status to every window, several times a second while
+  syncing, and the web app's chat screen rendered that stream directly — so
+  whichever of the machine's folders ticked last appeared in whatever chat was
+  open, including a new chat that owns no folder, and was repainted on the next
+  tick. The shell's own windows (Folder Sync Status, the tray) still see every
+  folder, because that is what they are for; the web app now sees only the open
+  conversation's, and nothing at all when no conversation is open.
+
+  0.2.5 stopped the shell *answering* with the wrong conversation. This stops it
+  *pushing* the wrong folder, which is the half that was still visible.
+
 ## 0.2.5 — 28 Aug 2026
 
 ### Fixed
