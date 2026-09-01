@@ -12,8 +12,14 @@
   folder, because that is what they are for; the web app now sees only the open
   conversation's, and nothing at all when no conversation is open.
 
+  The same scoping applies to `listLinks()`, which was the part still visible on
+  screen: it handed the page every folder on the machine, and a chat with no
+  folder rendered one of them — a chip reading "Vietnam Information", which is
+  merely the local directory name of an unrelated space's link. A chat with no
+  folder now gets an empty list, and shows "Link a folder" as it should.
+
   0.2.5 stopped the shell *answering* with the wrong conversation. This stops it
-  *pushing* the wrong folder, which is the half that was still visible.
+  *offering* one.
 
 ## 0.2.5 — 28 Aug 2026
 

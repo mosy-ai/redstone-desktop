@@ -13,7 +13,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { wantsStatus } from '../src/main/ipc';
+import { visibleLinks, wantsStatus } from '../src/main/ipc';
 
 const SHELL = true;
 const WEB_APP = false;
@@ -35,4 +35,16 @@ test('a chat with no conversation open is told nothing at all', () => {
   // The reported bug in one line: a new chat owns no folder, so no folder's
   // progress belongs on its screen.
   assert.equal(wantsStatus(WEB_APP, 'folder-a', null), false);
+});
+
+test('the list of folders is scoped the same way as the updates', () => {
+  const links = [{ folderId: 'folder-a' }, { folderId: 'folder-b' }];
+  // The Folder Sync Status window manages the machine; it sees all of them.
+  assert.deepEqual(visibleLinks(links, SHELL, 'folder-a'), links);
+  // A chat sees the folder it works in.
+  assert.deepEqual(visibleLinks(links, WEB_APP, 'folder-b'), [{ folderId: 'folder-b' }]);
+  // The reported bug: a chat with no folder was handed the whole list and
+  // rendered one of them — a local directory called "Vietnam Information" that
+  // belonged to an unrelated space.
+  assert.deepEqual(visibleLinks(links, WEB_APP, null), []);
 });

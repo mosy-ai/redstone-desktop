@@ -118,6 +118,20 @@ export function broadcastStatus(status: LinkStatus): void {
 export const isShellPage = (url: string): boolean => url.startsWith('file:');
 
 /**
+ * Which of this machine's folders a caller may see. Same rule as `wantsStatus`,
+ * applied to the list rather than to one update.
+ */
+export function visibleLinks<T extends { folderId: string }>(
+  all: T[],
+  shellPage: boolean,
+  openConversationFolderId: string | null,
+): T[] {
+  if (shellPage) return all;
+  if (!openConversationFolderId) return [];
+  return all.filter((l) => l.folderId === openConversationFolderId);
+}
+
+/**
  * Pure, so the rule can be tested without a window: shell pages see every
  * folder, the web app sees only the open conversation's — and nothing at all
  * when no conversation is open, which is the case a new chat used to get wrong.
@@ -223,7 +237,27 @@ export function registerIpc(): void {
     await syncEngine.unlink(id);
   });
 
-  handle(IPC.listLinks, (): LinkStatus[] => syncEngine.statuses());
+  /**
+   * Which folders the caller may know about.
+   *
+   * The shell's own pages manage every folder on this machine — that is what the
+   * Folder Sync Status window is. The web app is a chat screen, and handing it
+   * the whole list is how a folder ended up rendered beside a conversation that
+   * has nothing to do with it: a chat with no folder at all showed
+   * "Vietnam Information", which is simply the local directory name of another
+   * link, picked out of this list.
+   *
+   * So the web app sees the open conversation's folder and no other. Everything
+   * it can legitimately do with a folder — show it, sync it, unlink it — is about
+   * the conversation on screen.
+   */
+  handle(IPC.listLinks, (event): LinkStatus[] =>
+    visibleLinks(
+      syncEngine.statuses(),
+      isShellPage(event.senderFrame?.url ?? ''),
+      currentConversationFolderId(),
+    ),
+  );
 
   handle(IPC.pauseLink, async (_event, folderId: unknown) => {
     const id = asString(folderId);
