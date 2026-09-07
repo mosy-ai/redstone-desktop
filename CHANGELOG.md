@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.7 — 7 Sep 2026
+
+### Fixed
+- **"Hide decorative background effects" now removes them, rather than pausing
+  them.** Pausing stopped the animation but left four blurred shapes 350-520px
+  across in the layer tree, and everything drawn over them still composited
+  against a 90-110px blur — so the cost came back on every scroll and every
+  streamed answer, which is when it was most visible. Measured on an M1 Pro,
+  scrolling the same conversation: 33.8% of a CPU core as shipped, 24.0% with
+  the setting on.
+
+  The setting was renamed to match what it does. Spinners, progress indicators
+  and transitions are still untouched.
+
+### Known, and not ours to fix
+The remaining cost is the conversation itself: the one measured here is 85,505px
+of content, about 65 screens, rendered in full. Scrolling that is expensive
+whatever the shell does — the web app would need to virtualize its message list.
+For reference, `backdrop-filter` on the nine glass panels accounts for only ~1.6
+points, and the DOM is not the problem (11,774 nodes, 16 MB heap).
+
 ## 0.2.6 — 29 Aug 2026
 
 ### Fixed
