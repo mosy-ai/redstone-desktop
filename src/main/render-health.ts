@@ -63,6 +63,51 @@ export function stopRenderHealth(): void {
   timer = null;
 }
 
+/**
+ * Memory milestones already reported, so each is said once rather than every
+ * fifteen seconds for the rest of the day.
+ */
+const memoryMilestones = new Set<number>();
+/** Milestones in MB. A chat window has no business at any of these. */
+const MEMORY_STEPS = [1_000, 2_000, 4_000, 8_000, 12_000];
+
+/**
+ * The milestone to report for this reading, or null for nothing new.
+ *
+ * Pure, because the alternative is allocating gigabytes to test it. Reports the
+ * *highest* step passed rather than the next one up, so an app that is already
+ * at 12 GB when first sampled says so instead of reporting 1 GB and waiting.
+ */
+export function nextMemoryMilestone(totalMb: number, reported: Set<number>): number | null {
+  const step = [...MEMORY_STEPS].reverse().find((s) => totalMb >= s);
+  if (step === undefined || reported.has(step)) return null;
+  return step;
+}
+
+/**
+ * Notice memory the way we notice CPU.
+ *
+ * Reported as "11.88 GB in Activity Monitor" with nothing in the log to say when
+ * it started, what held it, or whether it was the shell or the page. The numbers
+ * are already in `getAppMetrics`; only the noticing was missing.
+ */
+function watchMemory(metrics: Electron.ProcessMetric[]): void {
+  const mb = (m: Electron.ProcessMetric): number => Math.round(m.memory.workingSetSize / 1024);
+  const total = metrics.reduce((sum, m) => sum + mb(m), 0);
+  const step = nextMemoryMilestone(total, memoryMilestones);
+  if (step === null) return;
+  memoryMilestones.add(step);
+
+  const worst = [...metrics].sort((a, b) => mb(b) - mb(a)).slice(0, 4);
+  logger.warn('Redstone is holding a lot of memory', {
+    totalMb: total,
+    biggest: worst.map((m) => `${m.type}${m.name ? ` (${m.name})` : ''}:${mb(m)}MB`),
+    // Which half it is: the shell's own process, or the page it displays.
+    shellMb: metrics.filter((m) => m.type === 'Browser').reduce((s, m) => s + mb(m), 0),
+    pageMb: metrics.filter((m) => m.type === 'Tab').reduce((s, m) => s + mb(m), 0),
+  });
+}
+
 function sample(): void {
   let metrics: Electron.ProcessMetric[];
   try {
@@ -70,6 +115,8 @@ function sample(): void {
   } catch {
     return; // shutting down
   }
+
+  watchMemory(metrics);
 
   const busiest = metrics
     .filter((m) => m.type === 'Tab' || m.type === 'GPU')
@@ -114,6 +161,17 @@ function sample(): void {
  * fingerprint rather than a transcript. Identical messages are counted, not
  * repeated.
  */
+/**
+ * How many distinct console lines to keep counts for.
+ *
+ * The map exists to say "this happened 1,000 times" instead of printing it 1,000
+ * times, which needs one entry per *distinct* message. A page whose warnings
+ * carry a request id or a timestamp makes every line distinct, so without a cap
+ * this grows for as long as the app is open — a leak in the shell, caused by the
+ * shell's own diagnostics. Forty is already more than the log will print.
+ */
+const CONSOLE_KEYS_KEPT = 200;
+
 export function watchConsole(contents: Electron.WebContents): void {
   const seen = new Map<string, number>();
   let distinct = 0;
@@ -127,6 +185,12 @@ export function watchConsole(contents: Electron.WebContents): void {
     if (!key) return;
 
     const count = (seen.get(key) ?? 0) + 1;
+    // Insertion-ordered, so the oldest key is the first one `keys()` yields:
+    // evicting it keeps recent messages counted and bounds the map for good.
+    if (!seen.has(key) && seen.size >= CONSOLE_KEYS_KEPT) {
+      const oldest = seen.keys().next().value;
+      if (oldest !== undefined) seen.delete(oldest);
+    }
     seen.set(key, count);
 
     // First sighting is logged; after that only at exponential milestones, so a

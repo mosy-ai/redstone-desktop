@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.2.8 — 9 Sep 2026
+
+Reported as Redstone holding 11.88 GB in Activity Monitor, with nothing in the
+log to say when it began or what held it.
+
+### Fixed
+- **A leak in the shell's own diagnostics.** The console watcher added in 0.2.4
+  kept a count per distinct message so a repeating error reads as "this happened
+  1,000 times" instead of a thousand lines. Distinct was the problem: a page
+  whose warnings carry a request id or timestamp makes every line distinct, so
+  the map grew for as long as the app stayed open. It now keeps the 200 most
+  recent and evicts the oldest.
+
+### Added
+- **Memory is now watched the way CPU already was.** Crossing 1, 2, 4, 8 or
+  12 GB is logged once, with the biggest processes and — the question that
+  matters — how much is the shell versus the page it displays. The highest step
+  passed is reported, so an app that is already enormous when first sampled says
+  so rather than reporting 1 GB and waiting.
+
+  This does not fix the reported 11.88 GB; a fresh session does not reproduce it
+  (27 minutes of sampling stayed between 209 MB and 540 MB). It makes the next
+  occurrence answerable instead of anecdotal.
+
 ## 0.2.7 — 7 Sep 2026
 
 ### Fixed
