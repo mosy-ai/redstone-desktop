@@ -26,6 +26,7 @@ const defaults = (): Settings => ({
   maxSyncFileBytes: SYNC.maxFileBytes,
   preferredMicrophoneId: '',
   reduceBackgroundAnimation: false,
+  quickContinuationDefaulted: false,
 });
 
 let store: JsonStore<Settings> | null = null;
@@ -40,6 +41,19 @@ export async function initSettings(): Promise<void> {
   // launch. Nested defaults have to be filled in explicitly.
   store.update((draft) => {
     draft.shortcuts = { ...fallback.shortcuts, ...draft.shortcuts };
+
+    // `quickBarContinuesLastSession` existed for months as a setting nothing
+    // read — the quick bar cleared its conversation on every hide regardless. So
+    // a stored `false` is not a decision anyone made; it is the old default,
+    // written into every existing settings.json. Left alone it would silently
+    // switch the feature off for exactly the people who asked for it.
+    //
+    // Migrated once, and marked, so a user who genuinely turns it off later
+    // keeps it off.
+    if (!draft.quickContinuationDefaulted) {
+      draft.quickContinuationDefaulted = true;
+      draft.quickBarContinuesLastSession = true;
+    }
   });
   await store.flush();
 

@@ -160,6 +160,13 @@ export interface Settings {
   lastQuickSessionId: string | null;
 
   /**
+   * Set once, when the dead `quickBarContinuesLastSession` setting was given a
+   * meaning. Without it, every existing install would read the old default —
+   * `false`, written when nothing consumed the value — as a deliberate "no".
+   */
+  quickContinuationDefaulted: boolean;
+
+  /**
    * The model the user last picked in the quick bar, as the web app names it.
    *
    * The shell never interprets this. It is remembered here and handed back so
