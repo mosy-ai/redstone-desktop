@@ -10,6 +10,7 @@
  * on and start syncing again when the user comes back to it.
  */
 import { setActiveServer } from './servers';
+import { forgetQuickSession } from './quick-state';
 import { syncEngine } from './sync/engine';
 import { setActiveSession } from './attachments';
 import { loadApp, getMainWindow, showMainWindow } from './windows/main-window';
@@ -28,8 +29,11 @@ export async function connectToServer(origin: string, name?: string): Promise<vo
   //    — the API client, the navigation allowlist, the quick bar — follows.
   await setActiveServer(origin, name);
 
-  // 3. The old server's conversation is meaningless here.
+  // 3. The old server's conversation is meaningless here — including the one the
+  //    quick bar was remembering, whose id exists only on the instance we just
+  //    left.
   setActiveSession(null);
+  forgetQuickSession();
   hideQuickWindow();
 
   // 4. Show the app. Creating the window navigates it, so a second loadApp here

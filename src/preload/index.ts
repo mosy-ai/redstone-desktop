@@ -21,6 +21,7 @@ import {
   type ConnectionReport,
   type LinkFolderOptions,
   type ProbeResult,
+  type QuickState,
   type ServerState,
   type Settings,
   type SessionFolderState,
@@ -56,6 +57,22 @@ const bridge = {
     ipcRenderer.invoke(IPC.revealInFileManager, options),
   /** Pick + create/attach + first sync + bound chat, in one call. */
   openFolder: (): Promise<LinkStatus | null> => ipcRenderer.invoke(IPC.openFolderFlow),
+
+  // --- the quick bar ----------------------------------------------------------
+  // For the `/quick` route. The shell remembers what the bar was last in and
+  // which model was chosen, because it is the only part that survives the window
+  // being hidden and the app being quit. The page decides what to do with it.
+  quickState: (): Promise<QuickState> => ipcRenderer.invoke(IPC.quickState),
+  /**
+   * Report what the user did: which conversation the bar is in, which model they
+   * picked, or that they asked for a new conversation. Returns the state as the
+   * shell now holds it.
+   */
+  setQuickState: (patch: {
+    sessionId?: string | null;
+    model?: string;
+    newConversation?: boolean;
+  }): Promise<QuickState> => ipcRenderer.invoke(IPC.setQuickState, patch),
 
   // --- per-conversation folder link -------------------------------------------
   // What a "link folder" button in the chat header should call. Omit sessionId

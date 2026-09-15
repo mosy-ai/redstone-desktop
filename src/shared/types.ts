@@ -84,6 +84,16 @@ export interface TurnActivity {
   active: boolean;
 }
 
+/** What the quick bar should open with, and what it reports back. */
+export interface QuickState {
+  /** The conversation to continue, or null to start a new one. */
+  sessionId: string | null;
+  /** The model to preselect, as the web app names it. Empty means no preference. */
+  model: string;
+  /** False when the user has asked for a fresh conversation every time. */
+  continueLastSession: boolean;
+}
+
 export interface ShellInfo {
   version: string;
   platform: NodeJS.Platform;
@@ -134,7 +144,29 @@ export interface Settings {
   appOrigin: string;
   shortcuts: { quickBar: string; capture: string; summon: string };
   /** Quick bar starts a fresh conversation unless the user pins continuation. */
+  /**
+   * Reopening the quick bar continues the conversation it was last in, the way
+   * a phone's assistant does, instead of starting a new one every time.
+   */
   quickBarContinuesLastSession: boolean;
+
+  /**
+   * The conversation the quick bar was last in, remembered across restarts.
+   *
+   * State rather than preference, but it belongs with the settings store for the
+   * same reason the server does: it is per-instance, and switching servers must
+   * forget it — a conversation id from another Redstone means nothing here.
+   */
+  lastQuickSessionId: string | null;
+
+  /**
+   * The model the user last picked in the quick bar, as the web app names it.
+   *
+   * The shell never interprets this. It is remembered here and handed back so
+   * the user does not re-pick a model every time the bar opens; only the web app
+   * knows what the value means.
+   */
+  quickModel: string;
   autoUpdate: boolean;
   launchAtLogin: boolean;
   /** Extra origins the renderer may talk to (storage host, CDN). */
@@ -253,6 +285,10 @@ export const IPC = {
   // main → renderer
   syncStatus: 'redstone:sync-status',
   filesDropped: 'redstone:files-dropped',
+
+  /** The quick bar asks what to resume, and reports what the user picked. */
+  quickState: 'redstone:quick-state',
+  setQuickState: 'redstone:set-quick-state',
 
   // quick bar — the window; its contents are the web app's /quick route
   quickResize: 'redstone:quick-resize',

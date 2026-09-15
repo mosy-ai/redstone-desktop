@@ -6,7 +6,13 @@
  * dialog produced it, and a `relPath` is always resolved inside its link root.
  */
 import { BrowserWindow, app, ipcMain, shell, webContents } from 'electron';
-import { IPC, type LinkStatus, type ServerState, type ShellInfo } from '../shared/types';
+import {
+  IPC,
+  type LinkStatus,
+  type QuickState,
+  type ServerState,
+  type ShellInfo,
+} from '../shared/types';
 import { ROUTES, SYNC } from '../shared/constants';
 import { activeServer, forgetServer, knownServers, probeServer } from './servers';
 import { connectToServer } from './server-switch';
@@ -35,6 +41,12 @@ import {
   unlinkSessionFolder,
 } from './session-folder';
 import { announceSession, currentConversationFolderId } from './session-broadcast';
+import {
+  forgetQuickSession,
+  quickState,
+  rememberQuickModel,
+  rememberQuickSession,
+} from './quick-state';
 import {
   focusMainWindow,
   getMainWindow,
@@ -345,6 +357,7 @@ export function registerIpc(): void {
     if (sessionId) {
       if (isQuickBar(event)) {
         setQuickSession(sessionId);
+        rememberQuickSession(sessionId);
         void flushPendingCapture(sessionId);
       } else {
         setActiveSession(sessionId, 'web-app');
@@ -359,6 +372,7 @@ export function registerIpc(): void {
     // to the main window would send later screenshots to the wrong chat.
     if (isQuickBar(event)) {
       setQuickSession(id);
+      rememberQuickSession(id);
       if (id) void flushPendingCapture(id);
       return;
     }
@@ -382,9 +396,6 @@ export function registerIpc(): void {
     // `allowedOrigins` are deliberately absent: they define what the renderer is
     // allowed to reach, and remote code must not be able to widen its own cage.
     const safe: Parameters<typeof updateSettings>[0] = {};
-    if (typeof patch.quickBarContinuesLastSession === 'boolean') {
-      safe.quickBarContinuesLastSession = patch.quickBarContinuesLastSession;
-    }
     if (typeof patch.autoUpdate === 'boolean') safe.autoUpdate = patch.autoUpdate;
     if (typeof patch.launchAtLogin === 'boolean') safe.launchAtLogin = patch.launchAtLogin;
     if (typeof patch.preferredMicrophoneId === 'string') {
@@ -395,6 +406,12 @@ export function registerIpc(): void {
     }
     if (typeof patch.reduceBackgroundAnimation === 'boolean') {
       safe.reduceBackgroundAnimation = patch.reduceBackgroundAnimation;
+    }
+    if (typeof patch.quickBarContinuesLastSession === 'boolean') {
+      safe.quickBarContinuesLastSession = patch.quickBarContinuesLastSession;
+      // Turning continuation off should take effect now, not at the next
+      // conversation: the point of switching it off is not to carry this one on.
+      if (!patch.quickBarContinuesLastSession) forgetQuickSession();
     }
     const saved = updateSettings(safe);
     // Takes effect on the open page, not just the next one.
@@ -548,6 +565,24 @@ export function registerIpc(): void {
     if (typeof height === 'number' && Number.isFinite(height)) resizeQuickWindow(height);
   });
   on(IPC.quickHide, () => hideQuickWindow());
+
+  // --- what the quick bar opens with -----------------------------------------
+  // The bar's contents are the web app's own route, so it owns the conversation
+  // and the model picker. The shell owns memory: it is the only part that
+  // outlives the window being hidden and the app being quit.
+  handle(IPC.quickState, (): QuickState => quickState());
+
+  handle(IPC.setQuickState, (_event, raw: unknown) => {
+    const patch = (raw ?? {}) as { sessionId?: unknown; model?: unknown; newConversation?: unknown };
+    // An explicit "start a new chat" from the page's own control. The shell has
+    // no opinion about when a conversation is over — guessing with a timeout
+    // would discard context the user still wanted.
+    if (patch.newConversation === true) forgetQuickSession();
+    const sessionId = asString(patch.sessionId);
+    if (sessionId) rememberQuickSession(sessionId);
+    if (typeof patch.model === 'string') rememberQuickModel(patch.model);
+    return quickState();
+  });
 
   logger.info('ipc handlers registered');
 }

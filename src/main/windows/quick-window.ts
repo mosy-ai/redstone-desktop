@@ -17,7 +17,7 @@ import { appUrl } from '../settings';
 import { guardWebContents } from '../security';
 import { getToken } from '../auth';
 import { discardPendingCapture } from '../capture';
-import { setQuickSession } from '../attachments';
+import { quickQuery } from '../quick-state';
 import { preloadPath } from './main-window';
 import logger from '../logger';
 
@@ -121,7 +121,14 @@ export async function createQuickWindow(): Promise<BrowserWindow> {
   });
 
   if (await hasQuickRoute()) {
-    await win.loadURL(appUrl(ROUTES.quick, { client: 'desktop' }));
+    const query = quickQuery();
+    // Ids and model names are not logged — only whether the handoff happened, so
+    // "it started a new chat again" is answerable without guessing.
+    logger.info('quick bar opening', {
+      resumingConversation: Boolean(query.session),
+      withRememberedModel: Boolean(query.model),
+    });
+    await win.loadURL(appUrl(ROUTES.quick, query));
   } else {
     logger.info('this server has no /quick route — showing the unsupported notice');
     await win.loadFile(path.join(__dirname, '../renderer/quick.html'));
@@ -146,7 +153,10 @@ export function hideQuickWindow(): void {
   // Whatever was held for this bar is gone with it: a screenshot the user never
   // sent should not survive to surprise them in the next conversation.
   discardPendingCapture();
-  setQuickSession(null);
+  // The conversation is *not* cleared here. Hiding the bar used to end it, so
+  // every summon started a new chat — the opposite of what a bar summoned forty
+  // times a day should do. What the bar is in now is remembered; a fresh one is
+  // an explicit act, not a side effect of pressing Escape.
   target.hide();
   resizeQuickWindow(QUICK_BAR.collapsedHeight);
   // Hand focus back to whatever the user was in — but only if the bar was the

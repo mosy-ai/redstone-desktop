@@ -17,7 +17,9 @@ const defaults = (): Settings => ({
     // and that one is hard-reload in every browser.
     summon: process.platform === 'darwin' ? 'Command+Alt+R' : 'Control+Alt+R',
   },
-  quickBarContinuesLastSession: false,
+  quickBarContinuesLastSession: true,
+  lastQuickSessionId: null,
+  quickModel: '',
   autoUpdate: true,
   launchAtLogin: false,
   allowedOrigins: [],

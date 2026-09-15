@@ -61,6 +61,7 @@ async function refresh(): Promise<void> {
   paint(info, settings);
   $<HTMLInputElement>('launchAtLogin').checked = settings.launchAtLogin;
   $<HTMLInputElement>('reduceBackgroundAnimation').checked = settings.reduceBackgroundAnimation;
+  $<HTMLInputElement>('quickBarContinuesLastSession').checked = settings.quickBarContinuesLastSession;
   $<HTMLElement>('serverOrigin').textContent = settings.appOrigin.replace(/^https?:\/\//, '') || '—';
   $<HTMLElement>('version').textContent = `Redstone ${info.version} · ${info.platform}`;
 }
@@ -142,6 +143,12 @@ async function apply(name: Name, accelerator: string): Promise<void> {
 }
 
 // --- the rest --------------------------------------------------------------
+
+$<HTMLInputElement>('quickBarContinuesLastSession').addEventListener('change', (event) => {
+  void shell!.setSettings({
+    quickBarContinuesLastSession: (event.target as HTMLInputElement).checked,
+  });
+});
 
 $<HTMLInputElement>('reduceBackgroundAnimation').addEventListener('change', (event) => {
   void shell!.setSettings({

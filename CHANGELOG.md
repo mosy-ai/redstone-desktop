@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.2.9 — 15 Sep 2026
+
+### Added
+- **The quick bar continues the conversation it was last in.** Summoning it used
+  to start a new chat every time, because hiding the bar cleared the
+  conversation the page had reported. It is now remembered — across the window
+  being hidden, the app being quit and the machine being restarted — and handed
+  back when the bar opens, as `?session=` on the route and through
+  `redstone.quickState()`.
+- **The model the user picks in the bar is remembered**, and handed back the same
+  way as `?model=`. The shell never interprets the value; the web app names its
+  own models and reports the choice with
+  `redstone.setQuickState({ model })`.
+- **"Quick bar continues the last conversation"** in desktop settings, on by
+  default. Turning it off starts a new conversation each time — and still
+  remembers the model, because "start fresh" is not "make me pick again".
+- Switching servers forgets the remembered conversation: a conversation id from
+  one instance means nothing on another. The model preference survives.
+
+The bar renders the web app's own `/quick` route, so the conversation and the
+model picker belong to it — the shell owns the memory and the handoff. Resuming
+and the picker itself need the web app to read what is now passed; that is
+written up for them.
+
 ## 0.2.8 — 9 Sep 2026
 
 Reported as Redstone holding 11.88 GB in Activity Monitor, with nothing in the
