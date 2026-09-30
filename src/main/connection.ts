@@ -205,6 +205,43 @@ export function reportReloadStorm(count: number): void {
   calmTimer.unref?.();
 }
 
+/**
+ * Folder sync's own requests keep dying at the transport.
+ *
+ * The probe and the page can both be perfectly happy while every sync call
+ * fails — a half-open route, a resolver that answers for one process and not
+ * another, a gateway dropping long connections. Until now that combination was
+ * silent: the badge span, the folder never finished, and nothing said why. So
+ * ask the probe first, because it can still turn out to be plain no-Wi-Fi, and
+ * only claim instability when the probe itself says the server is fine.
+ */
+export function reportSyncTrouble(count: number, reason: string): void {
+  void checkConnection().then((next) => {
+    if (next.state !== 'online') return; // The probe named a better reason.
+    syncTrouble = true;
+    logger.warn('sync cannot reach the server while the probe can', { count, reason });
+    publish({
+      state: 'unstable',
+      message: `Folder sync can't reach ${report.host || 'the server'} — still retrying.`,
+      host: report.host,
+      attempts: 0,
+    });
+  });
+}
+
+/**
+ * A sync cycle completed. Withdraws only a warning this module raised, because
+ * a cycle succeeding says nothing about a reload storm or a dead Wi-Fi.
+ */
+export function reportSyncHealthy(): void {
+  if (!syncTrouble) return;
+  syncTrouble = false;
+  if (report.state !== 'unstable') return;
+  void checkConnection();
+}
+
+let syncTrouble = false;
+
 /** How long the page must stay put before the warning is withdrawn. */
 const CALM_MS = 30_000;
 let calmTimer: NodeJS.Timeout | null = null;

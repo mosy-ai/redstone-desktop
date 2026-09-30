@@ -22,6 +22,7 @@ import { SYNC } from '../../shared/constants';
 import type { FolderLink } from '../links';
 import { getSettings } from '../settings';
 import logger, { relPathHint } from '../logger';
+import { reportSyncHealthy, reportSyncTrouble } from '../connection';
 import {
   ApiError,
   SignedOutError,
@@ -238,6 +239,7 @@ export class LinkSync {
     const release = await this.deps.acquire();
     try {
       await this.cycle();
+      if (this.networkFailures > 0) reportSyncHealthy();
       this.networkFailures = 0;
     } catch (err) {
       this.handleCycleError(err);
@@ -269,8 +271,14 @@ export class LinkSync {
       this.state?.conflicts.length ? 'conflict' : 'error',
       retryable ? 'Reconnecting…' : `Sync error: ${(err as Error).message}`,
     );
-    if (this.networkFailures === 5) {
+    if (this.networkFailures === SYNC.tellTheUserAfterFailures) {
       this.deps.onError(this.link.folderName, 'Sync keeps failing. Redstone will keep retrying.');
+      // Transport failures are the ones the user can act on — or at least stop
+      // blaming themselves for. A 500 is ours to fix and says nothing about
+      // their network, so only status 0 reaches the connection watcher.
+      if (err instanceof ApiError && err.status === 0) {
+        reportSyncTrouble(this.networkFailures, err.message);
+      }
     }
   }
 

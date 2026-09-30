@@ -45,6 +45,35 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Why a `fetch` rejected, in words.
+ *
+ * Node reports every transport failure as the same `TypeError: fetch failed`
+ * and hides the actual reason one level down in `cause`. A log full of "fetch
+ * failed" therefore cannot tell a dropped Wi-Fi from a dead resolver from a
+ * server that closed the socket under us — three problems with three different
+ * owners. Walking the chain to the innermost cause costs nothing and is the
+ * difference between a diagnosis and a shrug.
+ */
+export function transportReason(err: unknown): string {
+  const seen = new Set<unknown>();
+  let deepest = '';
+  let code = '';
+  let node: unknown = err;
+  while (node instanceof Error && !seen.has(node)) {
+    seen.add(node);
+    const own = node.message.trim();
+    // "fetch failed" is the wrapper's own noise; anything below it is the news.
+    if (own && own !== 'fetch failed') deepest = own;
+    const maybe = (node as { code?: unknown }).code;
+    if (typeof maybe === 'string' && maybe) code = maybe;
+    node = (node as { cause?: unknown }).cause;
+  }
+  if (!deepest && !code) return 'fetch failed';
+  if (!deepest) return `fetch failed (${code})`;
+  return code && !deepest.includes(code) ? `${deepest} (${code})` : deepest;
+}
+
 export class SignedOutError extends ApiError {
   constructor(endpoint: string) {
     super(401, endpoint, 'not signed in');
@@ -112,7 +141,7 @@ async function request(endpoint: string, opts: RequestOptions = {}): Promise<Res
     res = await fetch(url, { method: opts.method ?? 'GET', headers, body, signal });
   } catch (err) {
     // Offline, DNS failure, TLS failure, timeout — all retryable.
-    throw new ApiError(0, endpoint, (err as Error).message);
+    throw new ApiError(0, endpoint, transportReason(err));
   }
 
   if (res.ok || opts.expect?.includes(res.status)) return res;

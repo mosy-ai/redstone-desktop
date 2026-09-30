@@ -83,6 +83,8 @@ export const SYNC = {
   /** A file that fails this many times is parked in the error list. */
   maxFileAttempts: 5,
   /** Network backoff, ms. */
+  /** Consecutive failed cycles before the user is told rather than just the log. */
+  tellTheUserAfterFailures: 5,
   backoffBaseMs: 5_000,
   backoffMaxMs: 5 * 60_000,
   /** Soft warn / hard refuse thresholds. Spec §5.5, sync API §5. */
