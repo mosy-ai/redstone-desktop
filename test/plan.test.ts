@@ -205,8 +205,12 @@ test('empty directories are mirrored, populated ones are not', () => {
     remoteFiles: [remote('src/main.ts', 'a')],
     remoteDirs: ['src'],
   });
-  assert.deepEqual(kinds(ops), ['mkdir-remote', 'settle']);
+  // `src` needs no transfer — it arrived with its file — but it is still
+  // recorded, because an unrecorded folder that later vanishes from disk cannot
+  // be told apart from one we never made. See test/folder-delete.test.ts.
+  assert.deepEqual(kinds(ops), ['mkdir-remote', 'settle', 'settle-dir']);
   assert.equal((ops[0] as Extract<Op, { kind: 'mkdir-remote' }>).relPath, 'empty');
+  assert.equal((ops[2] as Extract<Op, { kind: 'settle-dir' }>).relPath, 'src');
 });
 
 test('parked work is dropped from the plan', () => {

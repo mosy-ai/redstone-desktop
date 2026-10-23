@@ -23,6 +23,16 @@ export interface LinkStateFile {
   truncated: boolean;
   lastSyncedAt: string | null;
   files: Record<string, FileRecord>;
+  /**
+   * Directories both sides held at the end of the last cycle, as a set.
+   *
+   * Directories carry no hash and nothing to compare, so unlike `files` this
+   * only has to answer one question: was this folder here last time? That is
+   * the whole difference between a deletion and a folder we have yet to make.
+   * Absent from state files written before this existed, which is harmless —
+   * the first cycle after an upgrade records what is already in sync.
+   */
+  dirs: Record<string, true>;
   remote: Record<string, RemoteRecord>;
   conflicts: string[];
   errors: string[];
@@ -36,6 +46,7 @@ const emptyState = (folderId: string, localPath: string): LinkStateFile => ({
   truncated: false,
   lastSyncedAt: null,
   files: {},
+  dirs: {},
   remote: {},
   conflicts: [],
   errors: [],
@@ -97,6 +108,26 @@ export class SyncStateStore {
 
   file(relPath: string): FileRecord | undefined {
     return this.store.get().files[relPath];
+  }
+
+  knownDirs(): Set<string> {
+    return new Set(Object.keys(this.store.get().dirs ?? {}));
+  }
+
+  putDir(relPath: string): void {
+    this.store.update((draft) => {
+      draft.dirs[relPath] = true;
+    });
+  }
+
+  dropDir(relPath: string): void {
+    this.store.update((draft) => {
+      delete draft.dirs[relPath];
+      // A directory cannot outlive its parent: dropping one drops its tree.
+      for (const key of Object.keys(draft.dirs)) {
+        if (key.startsWith(`${relPath}/`)) delete draft.dirs[key];
+      }
+    });
   }
 
   remoteEntries(): RemoteRecord[] {

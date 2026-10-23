@@ -41,7 +41,9 @@ import { conflictCopyPath, planCycle } from './plan';
 import { opPath, opSignature, type Op } from './types';
 
 /** Operations the user would call "syncing" — the ones that move bytes. */
-const isTransfer = (op: Op): boolean => op.kind !== 'settle' && op.kind !== 'forget';
+const BOOKKEEPING: ReadonlySet<Op['kind']> = new Set(['settle', 'forget', 'settle-dir', 'forget-dir']);
+/** Ops that move bytes. The rest only touch our own records. */
+const isTransfer = (op: Op): boolean => !BOOKKEEPING.has(op.kind);
 
 export interface LinkSyncDeps {
   /** Serialises cycles so at most two links transfer at once (spec §5.3). */
@@ -356,6 +358,7 @@ export class LinkSync {
       localDirs: scan.dirs,
       remoteFiles,
       remoteDirs,
+      knownDirs: this.state.knownDirs(),
       truncated,
       isParked: (op) => this.isParked(op),
     });
@@ -432,6 +435,7 @@ export class LinkSync {
     switch (op.kind) {
       case 'mkdir-local':
         await fs.mkdir(this.abs(op.relPath), { recursive: true });
+        this.state.putDir(op.relPath);
         return;
 
       case 'mkdir-remote': {
@@ -439,6 +443,7 @@ export class LinkSync {
         const name = op.relPath.slice(op.relPath.lastIndexOf('/') + 1);
         await makeDirectory(this.link.folderId, parent, name);
         this.state.patchRemote({ path: op.relPath, isDir: true, size: null, modified: null, hash: null });
+        this.state.putDir(op.relPath);
         this.state.invalidateCursor();
         return;
       }
@@ -555,6 +560,40 @@ export class LinkSync {
       case 'forget': {
         this.state.dropFile(op.relPath);
         this.state.clearConflict(op.relPath);
+        return;
+      }
+
+      case 'rmdir-local': {
+        try {
+          await fs.rmdir(this.abs(op.relPath));
+        } catch (err) {
+          const code = (err as { code?: string }).code;
+          // Never forced. ENOTEMPTY means something we do not sync — an ignored
+          // file, a .DS_Store, a file added a second ago — still lives there,
+          // and deleting a folder out from under that is not ours to do.
+          if (code === 'ENOTEMPTY' || code === 'EEXIST') return;
+          if (code !== 'ENOENT') throw err;
+        }
+        this.state.dropDir(op.relPath);
+        return;
+      }
+
+      case 'rmdir-remote': {
+        const result = await deleteEntry(this.link.folderId, op.relPath);
+        if (result === 'not-empty') return; // grew under us; next cycle
+        this.state.dropDir(op.relPath);
+        this.state.dropRemote(op.relPath);
+        this.state.invalidateCursor();
+        return;
+      }
+
+      case 'settle-dir': {
+        this.state.putDir(op.relPath);
+        return;
+      }
+
+      case 'forget-dir': {
+        this.state.dropDir(op.relPath);
         return;
       }
     }

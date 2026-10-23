@@ -11,6 +11,11 @@
  * | deleted   | changed   | download — a resurrect beats a loss     |
  * | changed   | deleted   | upload — same reason                    |
  *
+ * Directories get the same treatment, and need `knownDirs` to get it: a folder
+ * missing from disk is only a deletion if we saw it there last cycle. Without
+ * that memory the single answer to "on the server, not on disk" was `mkdir`,
+ * which is why a folder deleted in Finder came straight back.
+ *
  * Nothing here touches the network, the disk or Electron: given three snapshots
  * it returns the operations, which is what makes the rules testable instead of
  * merely asserted. `link-sync.ts` supplies the snapshots and applies the result.
@@ -25,6 +30,11 @@ export interface PlanInput {
   localDirs: Set<string>;
   remoteFiles: Map<string, RemoteRecord>;
   remoteDirs: Set<string>;
+  /**
+   * Directories both sides agreed on at the end of the last successful cycle.
+   * This is what separates "deleted here" from "never arrived here".
+   */
+  knownDirs?: Set<string>;
   /** A partial listing may never be read as "those files were deleted". */
   truncated: boolean;
   /** Ops whose retry budget is spent are dropped until the work changes. */
@@ -33,6 +43,7 @@ export interface PlanInput {
 
 export function planCycle(input: PlanInput): Op[] {
   const { records, localFiles, localDirs, remoteFiles, remoteDirs, truncated } = input;
+  const knownDirs = input.knownDirs ?? new Set<string>();
   const ops: Op[] = [];
   const handled = new Set<string>();
 
@@ -104,18 +115,46 @@ export function planCycle(input: PlanInput): Op[] {
     if (!truncated) ops.push({ kind: 'forget', relPath });
   }
 
-  // Empty directories are content too. A directory that already holds files
-  // arrives implicitly with the first file, so only the empty ones are worth an
-  // explicit operation.
-  for (const dir of localDirs) {
-    if (!remoteDirs.has(dir) && !hasChildren(localFiles, dir)) {
-      ops.push({ kind: 'mkdir-remote', relPath: dir });
+  // Directories are content too, and a missing one is ambiguous until we know
+  // whether it was ever here. A directory that already holds files arrives
+  // implicitly with the first file, so only the empty ones are worth creating.
+  for (const dir of new Set([...localDirs, ...remoteDirs, ...knownDirs])) {
+    const onLocal = localDirs.has(dir);
+    const onRemote = remoteDirs.has(dir);
+    const known = knownDirs.has(dir);
+
+    if (onLocal && onRemote) {
+      // Record it, so that the next time it goes missing we can tell why.
+      if (!known) ops.push({ kind: 'settle-dir', relPath: dir });
+      continue;
     }
-  }
-  for (const dir of remoteDirs) {
-    if (!localDirs.has(dir) && !hasChildren(remoteFiles, dir)) {
-      ops.push({ kind: 'mkdir-local', relPath: dir });
+    // A partial listing may never be read as "that folder was deleted" — and it
+    // is no evidence the server lacks a folder we hold, either.
+    if (truncated) continue;
+
+    if (onLocal) {
+      if (!known) {
+        if (!hasChildren(localFiles, dir)) ops.push({ kind: 'mkdir-remote', relPath: dir });
+      } else if (!hasChildren(localFiles, dir)) {
+        // Deleted on the server. Only ever removed while empty: whatever is
+        // still in there is something the user can see and did not ask us to
+        // touch. Children are ordered first, so a tree empties from the leaves.
+        ops.push({ kind: 'rmdir-local', relPath: dir });
+      }
+      continue;
     }
+
+    if (onRemote) {
+      if (!known) {
+        if (!hasChildren(remoteFiles, dir)) ops.push({ kind: 'mkdir-local', relPath: dir });
+      } else {
+        // Deleted in Finder. This is the case that used to read as `mkdir-local`.
+        ops.push({ kind: 'rmdir-remote', relPath: dir });
+      }
+      continue;
+    }
+
+    ops.push({ kind: 'forget-dir', relPath: dir });
   }
 
   const kept = input.isParked ? ops.filter((op) => !input.isParked?.(op)) : ops;
@@ -186,14 +225,22 @@ export function orderOps(ops: Op[]): Op[] {
     upload: 6,
     'delete-local': 7,
     'delete-remote': 8,
-    settle: 9,
-    forget: 10,
+    'rmdir-local': 9,
+    'rmdir-remote': 10,
+    settle: 11,
+    forget: 12,
+    'settle-dir': 13,
+    'forget-dir': 14,
   };
   const depth = (op: Op): number => opPath(op).split('/').length;
   return [...ops].sort((a, b) => {
     const byKind = rank[a.kind] - rank[b.kind];
     if (byKind !== 0) return byKind;
-    const deleting = a.kind === 'delete-local' || a.kind === 'delete-remote';
+    const deleting =
+      a.kind === 'delete-local' ||
+      a.kind === 'delete-remote' ||
+      a.kind === 'rmdir-local' ||
+      a.kind === 'rmdir-remote';
     return deleting ? depth(b) - depth(a) : depth(a) - depth(b);
   });
 }

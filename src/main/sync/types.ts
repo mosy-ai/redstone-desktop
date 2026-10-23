@@ -44,6 +44,10 @@ export type Op =
   | { kind: 'move-local'; from: string; to: string; remote: RemoteRecord }
   | { kind: 'mkdir-remote'; relPath: string }
   | { kind: 'mkdir-local'; relPath: string }
+  | { kind: 'rmdir-remote'; relPath: string }
+  | { kind: 'rmdir-local'; relPath: string }
+  | { kind: 'settle-dir'; relPath: string }
+  | { kind: 'forget-dir'; relPath: string }
   | { kind: 'settle'; relPath: string; local: LocalEntry; remote: RemoteRecord }
   | { kind: 'forget'; relPath: string };
 
