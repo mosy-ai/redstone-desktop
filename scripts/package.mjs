@@ -33,5 +33,25 @@ if (needsPlainPath) {
   console.log(`[package] writing artifacts to ${out}`);
 }
 
-const child = spawn('npx', ['electron-builder', ...args], { cwd: root, stdio: 'inherit' });
+/**
+ * The certificate this project ships under, by name.
+ *
+ * Left to itself electron-builder signs with whichever Developer ID it finds
+ * first in the keychain, and this machine holds more than one. Signing with the
+ * wrong one is not a cosmetic mistake: Squirrel.Mac refuses an update whose
+ * identity differs from the installed app's, so a mis-signed release reaches
+ * nobody and cannot be fixed by re-releasing under the same version.
+ *
+ * Not a secret — it is printed inside every signed binary. CI sets CSC_NAME
+ * from its own certificate and is left alone.
+ */
+const SIGN_IDENTITY = 'Developer ID Application: Anh Nguyen Ngoc (A3W6G8FQ2L)';
+
+const env = { ...process.env };
+if (!env.CSC_NAME && !env.CSC_LINK) {
+  env.CSC_NAME = SIGN_IDENTITY;
+  console.log(`[package] signing as ${SIGN_IDENTITY}`);
+}
+
+const child = spawn('npx', ['electron-builder', ...args], { cwd: root, stdio: 'inherit', env });
 child.on('exit', (code) => process.exit(code ?? 1));
