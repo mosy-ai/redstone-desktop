@@ -54,11 +54,26 @@ jobs:
 
       # The icon renderer draws through Electron, so the Linux runner needs a
       # display for it as much as for the smoke test.
+      # Two releases in a row were blocked here by the runner failing to resolve
+      # archive.ubuntu.com — nothing to do with this project, but it fails the
+      # whole job. Retry, and on the last attempt accept whatever apt could
+      # fetch: a missing package surfaces as a real failure in the icon or smoke
+      # step below, which is a far more honest place to stop than a mirror
+      # lookup.
       - name: Install Linux deps
         if: matrix.name == 'linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libnotify4 libsecret-1-0
+          packages="xvfb libnotify4 libsecret-1-0"
+          for attempt in 1 2 3; do
+            if sudo apt-get update && sudo apt-get install -y $packages; then
+              echo "apt: installed on attempt $attempt"
+              exit 0
+            fi
+            echo "apt: attempt $attempt failed"
+            sleep $((attempt * 15))
+          done
+          echo "apt: giving up on the mirrors; continuing with --fix-missing"
+          sudo apt-get install -y --fix-missing $packages || true
       - name: Icons (linux)
         if: matrix.name == 'linux'
         run: xvfb-run --auto-servernum npm run icons

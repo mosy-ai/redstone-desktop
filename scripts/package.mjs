@@ -44,8 +44,13 @@ if (needsPlainPath) {
  *
  * Not a secret — it is printed inside every signed binary. CI sets CSC_NAME
  * from its own certificate and is left alone.
+ *
+ * No "Developer ID Application:" prefix: electron-builder rejects it outright,
+ * because it picks the certificate *type* itself and wants only the name. The
+ * team id in brackets is what makes this unambiguous against the Apple
+ * Development certificate issued to the same person.
  */
-const SIGN_IDENTITY = 'Developer ID Application: Anh Nguyen Ngoc (A3W6G8FQ2L)';
+const SIGN_IDENTITY = 'Anh Nguyen Ngoc (A3W6G8FQ2L)';
 
 const env = { ...process.env };
 if (!env.CSC_NAME && !env.CSC_LINK) {
