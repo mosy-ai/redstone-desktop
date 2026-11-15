@@ -3,16 +3,31 @@
  * Explicitly *not* per file synced.
  */
 import { Notification } from 'electron';
+import { NotifyGate } from './notify-gate';
 import { showMainWindow } from './windows/main-window';
 import { showStatusWindow } from './windows/status-window';
 import logger from './logger';
 
 const supported = (): boolean => Notification.isSupported();
 
+const gate = new NotifyGate();
+
 function show(options: Electron.NotificationConstructorOptions, onClick: () => void): void {
   if (!supported()) return;
+
+  const verdict = gate.decide(`${options.title ?? ''}\n${options.body ?? ''}`, Date.now());
+  if (!verdict.show) {
+    logger.info('notification suppressed', { reason: verdict.reason, title: options.title });
+    return;
+  }
+
+  const body =
+    verdict.alsoSuppressed > 0
+      ? `${options.body ?? ''}\n(and ${verdict.alsoSuppressed} more while you were away)`
+      : options.body;
+
   try {
-    const n = new Notification(options);
+    const n = new Notification({ ...options, body });
     n.on('click', onClick);
     n.show();
   } catch (err) {

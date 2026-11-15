@@ -55,6 +55,28 @@ export interface LinkSyncDeps {
   onError: (folderName: string, message: string) => void;
 }
 
+/**
+ * Who should hear about a failed cycle.
+ *
+ * `'connection'` means the server could not be reached at all. That is one fact
+ * about the network, not one fact per folder — every link fails the same cycle
+ * and would otherwise raise the same alert in the same second, which is exactly
+ * the flood in the user's log. The connection watcher says it once for the
+ * whole app.
+ *
+ * `'folder'` means this folder specifically is in trouble — a 404, a 403, a
+ * folder too large — and naming it is the useful part.
+ *
+ * Exported and pure because the distinction is the fix, and a test that has to
+ * boot a sync engine to check it is a test nobody writes.
+ */
+export function cycleFailureAudience(err: unknown): 'connection' | 'folder' {
+  // Status 0 is what the client assigns to every transport failure: DNS, TLS,
+  // a dropped socket, a timeout. None of them are about a folder.
+  return err instanceof ApiError && err.status === 0 ? 'connection' : 'folder';
+}
+
+
 export class LinkSync {
   private state!: SyncStateStore;
   private rules!: IgnoreRules;
@@ -274,12 +296,16 @@ export class LinkSync {
       retryable ? 'Reconnecting…' : `Sync error: ${(err as Error).message}`,
     );
     if (this.networkFailures === SYNC.tellTheUserAfterFailures) {
-      this.deps.onError(this.link.folderName, 'Sync keeps failing. Redstone will keep retrying.');
-      // Transport failures are the ones the user can act on — or at least stop
-      // blaming themselves for. A 500 is ours to fix and says nothing about
-      // their network, so only status 0 reaches the connection watcher.
-      if (err instanceof ApiError && err.status === 0) {
-        reportSyncTrouble(this.networkFailures, err.message);
+      // A dead connection is one problem, not one per folder. Every link fails
+      // the same cycle and would raise the same alert in the same second, so
+      // the transport case goes to the connection watcher, which owns the
+      // question "can we reach the server at all" and answers it once for the
+      // whole app. Only a failure specific to *this* folder is worth a
+      // notification naming it.
+      if (cycleFailureAudience(err) === 'connection') {
+        reportSyncTrouble(this.networkFailures, (err as Error).message);
+      } else {
+        this.deps.onError(this.link.folderName, 'Sync keeps failing. Redstone will keep retrying.');
       }
     }
   }
